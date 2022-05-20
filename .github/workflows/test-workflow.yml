@@ -1,10 +1,15 @@
 name: learn-github-actions
 on:
-  push:
+  pull_request:
+    types:
+      - opened
     branches:
-      - test_workflow
+      - master
 jobs:
   check-bats-version:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "test"
+      - uses: superbrothers/close-pull-request@v3
+        with:
+          # Optional. Post a issue comment just before closing a pull request.
+          comment: "We do not accept PRs. If you have any questions, please feel free to contact us."
