@@ -1,5 +1,7 @@
 package hello
 
-func test1() {
+import "fmt"
 
+func test1() {
+	fmt.Println("dfsfasf")
 }
