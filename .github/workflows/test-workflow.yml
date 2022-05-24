@@ -1,4 +1,4 @@
-name: learn-github-actions
+name: prevent-file-change
 on:
   pull_request_target:
     types:
@@ -9,7 +9,9 @@ jobs:
   check-bats-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: superbrothers/close-pull-request@v3
+      - uses: xalvarez/prevent-file-change-action@v1
+        name: Prevent file change
         with:
-          # Optional. Post a issue comment just before closing a pull request.
-          comment: "We do not accept PRs. If you have any questions, please feel free to contact us."
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          pattern: .!*-ee.go
+          trustedAuthors: xalvarez
