@@ -13,5 +13,5 @@ jobs:
         name: Prevent file change
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          pattern: .*-ee.go
+          pattern: ^(?!.*-ee\.go$).*
           trustedAuthors: xalvarez
