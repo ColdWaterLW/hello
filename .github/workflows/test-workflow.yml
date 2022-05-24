@@ -7,7 +7,7 @@ on:
       - '*-ee'
 jobs:
   prevent-file-change:
-    if: github.head_ref != 'main' && github.head_ref != 'release*'
+    if: github.head_ref != 'main' && !startsWith(github.head_ref, 'release')
     runs-on: ubuntu-latest
     steps:
       - uses: xalvarez/prevent-file-change-action@v1
