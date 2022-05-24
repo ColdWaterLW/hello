@@ -16,4 +16,3 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           pattern: ^(?!.*-ee\.go$).*
           trustedAuthors: xalvarez
-      - run: echo "github ref ${{github.head_ref}}"
