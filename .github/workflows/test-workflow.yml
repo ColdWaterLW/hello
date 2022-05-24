@@ -1,19 +1,10 @@
 name: prevent-file-change
 on:
-  pull_request:
-    types:
-      - opened
+  push:
     branches:
-      - '*-ee'
+      - 'master'
 jobs:
   prevent-file-change:
-    if: github.ref != 'refs/heads/*-ee'
     runs-on: ubuntu-latest
     steps:
-      - uses: xalvarez/prevent-file-change-action@v1
-        name: Prevent file change
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          pattern: ^(?!.*-ee\.go$).*
-          trustedAuthors: xalvarez
       - run: echo "github ref $GITHUB_REF"
