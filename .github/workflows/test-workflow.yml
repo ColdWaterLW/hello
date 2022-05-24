@@ -4,9 +4,10 @@ on:
     types:
       - opened
     branches:
-      - master
+      - '*-ee'
 jobs:
   check-bats-version:
+    if: github.ref != 'refs/heads/*-ee'
     runs-on: ubuntu-latest
     steps:
       - uses: xalvarez/prevent-file-change-action@v1
