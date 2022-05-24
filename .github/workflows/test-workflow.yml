@@ -6,7 +6,7 @@ on:
     branches:
       - '*-ee'
 jobs:
-  check-bats-version:
+  prevent-file-change:
     if: github.ref != 'refs/heads/*-ee'
     runs-on: ubuntu-latest
     steps:
@@ -16,4 +16,4 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           pattern: ^(?!.*-ee\.go$).*
           trustedAuthors: xalvarez
-      - run: echo ${{github.ref}}
+      - run: echo "github ref $GITHUB_REF"
