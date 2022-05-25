@@ -1,8 +1,6 @@
 name: prevent-file-change
 on:
   pull_request:
-    types:
-      - opened
     branches:
       - '*-ee'
 jobs:
