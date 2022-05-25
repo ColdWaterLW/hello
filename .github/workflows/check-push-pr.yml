@@ -1,0 +1,14 @@
+name: prevent-file-change
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release*'
+    paths:
+      - '!**-ee.go$'
+jobs:
+  prevent-file-change:
+    if: endsWith(github.head_ref, '-ee')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo github.head_ref ${{github.head_ref}}
