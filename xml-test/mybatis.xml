@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapperxml.select.SelectMapper">
+    <!-- 接收一个 int 返回 hashmap (列名作为键, 列值作为值) -->
+    <select id="selectPerson" parameterType="int" resultType="hashmap">
+        SELECT * FROM tb1
+    </select>
+
+    <!-- $符号只进行字符串替换 -->
+    <sql id="idAndName">
+        ${alias}.id, ${alias}.name as ${alias}_name
+    </sql>
+
+    <select id="selectPersonProp" resultType="map">
+        select id
+        from person as t1, author as t2
+        where t1.id = t2.id
+    </select>
+
+    <!-- 下划线自动转驼峰需要在 mybatis-config.xml 中有额外的配置 -->
+    <select id="selectPersonObj" resultType="com.example.mapperxml.bean.Person">
+       SELECT * FROM person WHERE id = #{id}
+    </select>
+</mapper>

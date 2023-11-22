@@ -1,0 +1,1668 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Mon Jun 07 09:48:24 CST 2021-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctg.hro.dao.common.CommonDao">
+	<!--产品下拉框 -->
+	<select id="getProductDropDown" parameterType="java.util.Map" resultType="dropdownList">
+		SELECT * FROM (
+		SELECT
+		rownum r,bp.product_name shortName ,
+		bp.product_id key
+		FROM
+		bd_product bp, bd_product_type bpt
+		<if test="insurerId != null">,mi_insurer_product_relation mipr
+		</if>
+		WHERE bpt.product_type_id = bp.product_type_id
+		<if test="isVirtual != null">
+			AND bp.is_virtual = #{isVirtual} <!-- 是否为虚产品,1:是,0:否 -->
+		</if>
+		<if test="category != null">
+			AND bpt.category = #{category} 	<!--产品类型 -->
+		</if>
+		<if test="insurerId != null">
+			AND bp.product_id = mipr.product_id
+			AND mipr.insurer_id = #{insurerId} 	<!--保险公司 -->
+			AND mipr.is_deleted=0
+		</if>
+		AND rownum&lt;=${limit}
+		) t
+		WHERE r&gt;${start}
+	</select>
+
+	<select id="getProCount" parameterType="java.util.Map" resultType="int">
+		SELECT
+		count(1)
+		FROM
+		bd_product bp, bd_product_type bpt
+		<if test="insurerId != null">,mi_insurer_product_relation mipr
+		</if>
+		WHERE bpt.product_type_id = bp.product_type_id
+		<if test="isVirtual != null">
+			AND bp.is_virtual = #{isVirtual} <!-- 是否为虚产品,1:是,0:否 -->
+		</if>
+		<if test="category != null">
+			AND bpt.category = #{category} 	<!--产品类型 -->
+		</if>
+		<if test="insurerId != null">
+			AND bp.product_id = mipr.product_id
+			AND mipr.insurer_id = #{insurerId} 	<!--保险公司 -->
+			AND mipr.is_deleted=0
+		</if>
+	</select>
+
+	<sql id="prefix">
+		SELECT * FROM(SELECT T.*,ROWNUM RN FROM (
+	</sql>
+
+	<sql id="suffix">
+		) T WHERE ROWNUM&lt;=(#{startIndex} + #{endIndex}) ) where RN&gt;#{startIndex}
+	</sql>
+
+	<sql id="suffix2">
+		) T WHERE ROWNUM&lt;=#{endIndex}) WHERE RN&gt;#{startIndex}
+	</sql>
+
+	<select id="getCustomer" parameterType="java.util.Map" resultType="com.ctg.hro.entity.salemanage.Customer">
+		SELECT
+		cust_id custId,
+		cust_code custCode,
+		cust_name custName,
+		cust_english_name custEnglishName,
+		cust_short_name custShortName,
+		is_deleted isDeleted
+		FROM bd_customer bc
+		<where>
+			<if test="custId != null">
+				cust_id=#{custId}
+			</if>
+		</where>
+	</select>
+
+	<!-- 根据map里的条件查询customer的相应的分页的结果 -->
+	<sql id="customerCondition">
+		<trim prefix="where" prefixOverrides="and|or">
+		<if test="userRoleType != null">
+			<if test="userRoleType == 1">
+				<include refid="com.ctg.hro.dao.common.CommonDao.saleRoleCustomerAuthConditionSql"/>
+			</if>
+		</if>
+		<if test="userRoleType == null">
+			<if test="policyType == null">
+				<include refid="com.ctg.hro.dao.common.CommonDao.customerAuthConditionSql"/>
+			</if>
+			<if test="policyType != null">
+				<include refid="com.ctg.hro.dao.common.CommonDao.policyTypeCustomerAuthConditionSql"/>
+			</if>
+		</if>
+		<if test="filterByAuthNum != null">
+			<if test="filterByAuthNum == 1">
+				and exists(
+				select 1 from or_os_cust ooc where ooc.cust_id=bc.cust_id and ooc.is_deleted=0 and ooc.status=1
+				)
+			</if>
+			<!-- 			其他过滤选项 -->
+		</if>
+		and bc.is_deleted=0
+		<if test="custName != null">and
+			instr(cust_name,#{custName}) &gt; 0
+		</if>
+		<if test="custId != null">and cust_id=#{custId}
+		</if>
+		<if test="custCode != null">and
+			cust_code=#{custCode}
+		</if>
+		<if test="isDeleted != null">and
+			IS_DELETED=#{isDeleted}
+		</if>
+		<if test="isFinnace == 1">
+			union
+			SELECT
+			bc.cust_id custId,
+			bc.cust_name
+			custName,
+			bc.cust_code
+			custCode,
+			bc.cust_english_name custEnglishName,
+			bc.cust_short_name
+			custShortName,
+			bc.hr_contract,
+			bc.contact_tel,
+			bc.email,
+			bc.is_deleted isDeleted
+			FROM
+			bd_customer bc,
+			hs_subcontract sl, ef_receivable_template et
+			where
+			bc.cust_id =
+			sl.cust_id
+			and sl.cust_bill_templt_id =
+			et.receivable_templt_id
+			and
+			bc.is_deleted=0
+			and et.payee_id=#{providerId}
+			and exists (select 'x'
+			from sys_user_role_relation r, sys_role rl
+			where r.role_id = rl.role_id
+			and rl.status = 1
+			and rl.role_grade &lt;= 3
+			and rl.is_deleted = 0
+			and rl.biz_category in (50, 10)
+			and r.user_id = #{createBy}
+			and r.status = 1
+			and r.is_deleted = 0)
+			<if test="custName != null">and
+				instr(bc.cust_name,#{custName}) &gt; 0
+			</if>
+			<if test="custId != null">and cust_id=#{custId}
+			</if>
+			<if test="custCode != null">and
+				bc.cust_code=#{custCode}
+			</if>
+		</if>
+		</trim>
+	</sql>
+
+	<resultMap id="custResultMap" type="com.ctg.hro.entity.salemanage.Customer">
+		<!-- <result column="cust_id" property="salesList" select="common.selSalerByCustId"
+			/> -->
+		<result property="custId" column="cust_id"/>
+		<result property="custName" column="cust_name"/>
+		<result property="custCode" column="cust_code"/>
+		<result property="custEnglishName" column="cust_english_name"/>
+		<result property="custShortName" column="cust_short_name"/>
+		<result property="isDeleted" column="is_deleted"/>
+		<result property="hrContract" column="hr_contract"/>
+		<result property="contactTel" column="contact_tel"/>
+		<result property="email" column="email"/>
+	</resultMap>
+
+	<select id="selSalerByCustId" resultType="com.ctg.hro.entity.sysmanage.DeptDTO">
+		SELECT
+			distinct
+			s.productline_saler_id userId,u.real_name
+								   realName,s.productline_saler_provider_id governingBranch
+		FROM
+			crm_productline_mapping s,sys_user_info u
+		WHERE
+			u.user_id=s.productline_saler_id
+		  AND s.is_valid=1
+		  AND u.is_deleted=0
+		  AND
+			s.productline_company_id=#{custId}
+	</select>
+
+	<select id="getCustomerPage" parameterType="com.ctg.hro.entity.salemanage.Customer" resultMap="custResultMap">
+		<include refid="prefix"/>
+		SELECT
+		cust_id,
+		cust_name,
+		cust_code,
+		cust_english_name,
+		cust_short_name,
+		hr_contract,
+		contact_tel,
+		email,
+		is_deleted
+		FROM bd_customer bc 
+		<include refid="com.ctg.hro.dao.common.CommonDao.customerCondition"/>
+		<include refid="suffix"/>
+	</select>
+
+	<!-- 根据map里的条件查询customer的结果的总数 -->
+	<select id="getCustomerPageCount" parameterType="com.ctg.hro.entity.salemanage.Customer" resultType="Integer">
+		select count(1) from (
+		SELECT
+		cust_id,
+		cust_name,
+		cust_code,
+		cust_english_name,
+		cust_short_name,
+		hr_contract,
+		contact_tel,
+		email,
+		is_deleted
+		FROM bd_customer bc
+		<include refid="com.ctg.hro.dao.common.CommonDao.customerCondition"/>
+		)
+	</select>
+
+	<select id="getDropdownListByCondition" parameterType="java.util.Map" resultType="dropdownList">
+		SELECT ${idColumn} AS key,${descColumn} AS shortName
+		FROM ${tableName}
+		<trim prefix="where" prefixOverrides="and|or">
+			<if test="codeId != null">
+		    and ${idColumn} = #{codeId}
+			</if>
+			<if test="whereClause != null">
+			and ${whereClause}
+			</if>
+			<if test="condition != null">
+			and (${idColumn} like
+				'%'||#{condition}||'%' or ${descColumn} like
+				'%'||#{condition}||'%')
+			</if>
+		</trim>
+		ORDER BY ${orderColumn}
+	</select>
+
+	<sql id="queryInnerEmpCondition">
+		<!-- 卡客户产品范围销售 -->
+		<if test="custId != null">
+			and sui.user_id in(select distinct cpm.productline_saler_id from crm_productline_mapping cpm where cpm.productline_company_id=#{custId})
+		</if>
+
+		<if test="manageId != null">
+			AND EXISTS
+			(SELECT 'x'
+			FROM sys_user_manage_user umu
+			WHERE umu.user_id = #{manageId}
+			AND umu.is_deleted = 0
+			AND umu.managed_user_id = sui.user_id)
+		</if>
+		<if test="roleName != null">
+			and ur.role_name_group like '%${roleName}%'
+		</if>
+		<if test="userId != null">
+			and sui.user_id=#{userId}
+		</if>
+		<if test="userName != null">
+			and sui.user_name like '%${userName}%'
+		</if>
+		<if test="realName != null">
+			and sui.real_name like '%${realName}%'
+		</if>
+		<if test="deptName != null">
+			and sdi.department_name like '%${deptName}%'
+		</if>
+		<if test="deptId != null">
+			and sdi.department_id=#{deptId}
+		</if>
+		<if test="branchId != null">
+			and sdi.governing_branch=#{branchId}
+		</if>
+		<if test="branchName != null">
+			and sdi2.department_name like
+			'%${branchName}%'
+		</if>
+		<if test="areaId != null">
+			and sdi.governing_area=#{areaId}
+		</if>
+		<if test="subContractId != null">
+			and (sdi.governing_branch in (select hs.assignee_provider_id from hs_subcontract hs where hs.subcontract_id = #{subContractId}) or sdi.governing_branch in (select hss.svc_provider_id from hs_subcontract_service hss where hss.subcontract_id = #{subContractId}))
+		</if>
+	</sql>
+
+	<select id="queryInnerEmpCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1) from(
+		with ur as(
+		select
+		surr.user_id
+		ui,wm_concat(sr.role_name) role_name_group,
+		','||wm_concat(sr.role_id)
+		||',' role_id_group,
+		','||wm_concat(sr.role_code) ||','
+		role_code_group,
+		','||wm_concat(sr.role_grade) ||',' role_grade_group,
+		','||wm_concat(sr.biz_category)||',' role_category_group
+		from
+		sys_role
+		sr,sys_user_role_relation surr
+		where surr.role_id=sr.role_id
+		and
+		surr.is_deleted=0 and surr.status=1
+		and sr.is_deleted=0 and sr.status=1
+		<if test="roleId != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleId != null">and sr2.role_id in (${roleId})</if>
+			)
+		</if>
+		<if test="roleCode != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleCode != null">and sr2.role_code in (${roleCode})</if>
+			)
+		</if>
+		<if test="olTaskRole != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			and (sr2.role_code in (20080,20090,20095,20030,20040,20050) or sr2.biz_category in (20,50))
+			)
+		</if>
+		<if test="roleGrade != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleGrade != null">and sr2.role_grade in (${roleGrade})</if>
+			)
+		</if>
+		<if test="bizCategory != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="bizCategory != null">and sr2.biz_category in (${bizCategory})</if>
+			)
+		</if>
+		group by surr.user_id
+		)
+		SELECT 1
+		FROM sys_user_info
+		sui,sys_user_department_relation sudr,
+		sys_department_info
+		sdi,sys_department_info sdi2,sys_department_info
+		sdi3,ur
+		WHERE
+		sudr.user_id=sui.user_id
+		and sudr.is_deleted=0 and sudr.status=1
+		<if test="isExcludeDefault == null">
+			and sudr.is_default=1
+		</if>
+		and sdi.is_deleted=0 and sdi.status=1
+		and
+		sui.is_deleted=0 and sui.status=1
+		and
+		sdi.department_id=sudr.department_id
+		and
+		sdi.governing_branch=sdi2.department_id(+)
+		and
+		sdi.governing_area=sdi3.department_id(+)
+		<if test="noRole != null">
+			and sudr.user_id=ur.ui(+)
+		</if>
+		<if test="noRole == null">
+		and sudr.user_id=ur.ui
+		</if>
+		<include refid="queryInnerEmpCondition"/>
+		)
+	</select>
+
+	<select id="queryInnerEmp" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		with ur as(
+		select
+		surr.user_id ui,wm_concat(sr.role_name)
+		role_name_group,
+		','||wm_concat(sr.role_id) ||',' role_id_group,
+		','||wm_concat(sr.role_code) ||',' role_code_group,
+		','||wm_concat(sr.role_grade) ||',' role_grade_group,
+		','||wm_concat(sr.biz_category)||',' role_category_group
+		from
+		sys_role
+		sr,sys_user_role_relation surr
+		where surr.role_id=sr.role_id
+		and
+		surr.is_deleted=0 and surr.status=1
+		and sr.is_deleted=0 and sr.status=1
+		<if test="roleId != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleId != null">and sr2.role_id in (${roleId})</if>
+			)
+		</if>
+		<if test="olTaskRole != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			and (sr2.role_code in (20080,20090,20095,20030,20040,20050) or sr2.biz_category in (20,50))
+			)
+		</if>
+		<if test="roleCode != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleCode != null">and sr2.role_code in (${roleCode})</if>
+			)
+		</if>
+		<if test="roleGrade != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleGrade != null">and sr2.role_grade in (${roleGrade})</if>
+			)
+		</if>
+		<if test="bizCategory != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="bizCategory != null">and sr2.biz_category in (${bizCategory})</if>
+			)
+		</if>
+		group by surr.user_id
+		)
+		SELECT sui.user_id userId, sui.user_name
+		userName, sui.real_name realName,
+		sui.employee_id empId,
+		sdi.department_id deptId,sdi.department_name deptName,
+		sdi2.department_id branchId,sdi2.department_name
+		branchName,sdi3.department_id areaId,
+		sdi3.department_name areaName,
+		ur.role_name_group roleGroup,sei.e_mail email
+		FROM sys_user_info
+		sui,sys_user_department_relation sudr,sys_employee_info sei,
+		sys_department_info
+		sdi,sys_department_info sdi2,sys_department_info
+		sdi3,ur
+		WHERE
+		sudr.user_id=sui.user_id
+		and sudr.is_deleted=0 and sudr.status=1
+		<if test="isExcludeDefault == null">
+			and sudr.is_default=1
+		</if>
+		and sui.employee_id=sei.emp_id(+)
+		and sdi.is_deleted=0 and sdi.status=1
+		and
+		sui.is_deleted=0 and sui.status=1
+		and
+		sdi.department_id=sudr.department_id
+		and
+		sdi.governing_branch=sdi2.department_id(+)
+		and
+		sdi.governing_area=sdi3.department_id(+)
+		<if test="noRole != null">
+			and sudr.user_id=ur.ui(+)
+		</if>
+		<if test="noRole == null">
+			and sudr.user_id=ur.ui
+		</if>
+		<include refid="queryInnerEmpCondition"/>
+		<include refid="suffix"/>
+	</select>
+	<select id="queryInnerEmpExCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1) from(
+		with ur as(
+		select
+		surr.user_id
+		ui,wm_concat(sr.role_name) role_name_group,
+		','||wm_concat(sr.role_id)
+		||',' role_id_group,
+		','||wm_concat(sr.role_code) ||','
+		role_code_group,
+		','||wm_concat(sr.role_grade) ||',' role_grade_group,
+		','||wm_concat(sr.biz_category)||',' role_category_group
+		from
+		sys_role
+		sr,sys_user_role_relation surr
+		where surr.role_id=sr.role_id
+		and
+		surr.is_deleted=0 and surr.status=1
+		and sr.is_deleted=0 and sr.status=1
+		<if test="roleId != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleId != null">and sr2.role_id in (${roleId})</if>
+			)
+		</if>
+		<if test="roleCode != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleCode != null">and sr2.role_code in (${roleCode})</if>
+			)
+		</if>
+		<if test="olTaskRole != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			and (sr2.role_code in (20080,20090,20095,20030,20040,20050) or sr2.biz_category in (20,50))
+			)
+		</if>
+		<if test="roleGrade != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleGrade != null">and sr2.role_grade in (${roleGrade})</if>
+			)
+		</if>
+		<if test="bizCategory != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="bizCategory != null">and sr2.biz_category in (${bizCategory})</if>
+			)
+		</if>
+		group by surr.user_id
+		)
+		SELECT 1
+		FROM sys_user_info
+		sui,sys_user_department_relation sudr,
+		sys_department_info
+		sdi,sys_department_info sdi2,sys_department_info
+		sdi3,ur
+		WHERE
+		sudr.user_id=sui.user_id
+		<!-- 		and sudr.is_deleted=0 and sudr.status=1  -->
+		and sudr.is_default=1
+		and sdi.is_deleted=0 and sdi.status=1
+		<!-- 		and -->
+		<!-- 		sui.is_deleted=0 and sui.status=1 -->
+		and
+		sdi.department_id=sudr.department_id
+		and
+		sdi.governing_branch=sdi2.department_id(+)
+		and
+		sdi.governing_area=sdi3.department_id(+)
+		<if test="noRole != null">
+			and sudr.user_id=ur.ui(+)
+		</if>
+		<if test="noRole == null">
+			and sudr.user_id=ur.ui
+		</if>
+		<include refid="queryInnerEmpCondition"/>
+		)
+	</select>
+	<select id="queryInnerEmpEx" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		with ur as(
+		select
+		surr.user_id ui,wm_concat(sr.role_name)
+		role_name_group,
+		','||wm_concat(sr.role_id) ||',' role_id_group,
+		','||wm_concat(sr.role_code) ||',' role_code_group,
+		','||wm_concat(sr.role_grade) ||',' role_grade_group,
+		','||wm_concat(sr.biz_category)||',' role_category_group
+		from
+		sys_role
+		sr,sys_user_role_relation surr
+		where surr.role_id=sr.role_id
+		and
+		surr.is_deleted=0 and surr.status=1
+		and sr.is_deleted=0 and sr.status=1
+		<if test="roleId != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleId != null">and sr2.role_id in (${roleId})</if>
+			)
+		</if>
+		<if test="olTaskRole != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			and (sr2.role_code in (20080,20090,20095,20030,20040,20050) or sr2.biz_category in (20,50))
+			)
+		</if>
+		<if test="roleCode != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleCode != null">and sr2.role_code in (${roleCode})</if>
+			)
+		</if>
+		<if test="roleGrade != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="roleGrade != null">and sr2.role_grade in (${roleGrade})</if>
+			)
+		</if>
+		<if test="bizCategory != null">
+			and exists (
+			select 1 from sys_role
+			sr2,sys_user_role_relation surr2
+			where surr2.role_id=sr2.role_id
+			and
+			surr2.user_id = surr.user_id
+			and surr2.is_deleted=0 and surr2.status=1
+			and sr2.is_deleted=0 and sr2.status=1
+			<if test="bizCategory != null">and sr2.biz_category in (${bizCategory})</if>
+			)
+		</if>
+		group by surr.user_id
+		)
+		SELECT sui.user_id userId, sui.user_name
+		userName, sui.real_name realName,
+		sui.employee_id empId,
+		sdi.department_id deptId,sdi.department_name deptName,
+		sdi2.department_id branchId,sdi2.department_name
+		branchName,sdi3.department_id
+		areaId,sdi3.department_name areaName
+		,
+		ur.role_name_group roleGroup,sei.e_mail email
+		FROM sys_user_info
+		sui,sys_user_department_relation sudr,sys_employee_info sei,
+		sys_department_info
+		sdi,sys_department_info sdi2,sys_department_info
+		sdi3,ur
+		WHERE
+		sudr.user_id=sui.user_id
+		<!-- 		and sudr.is_deleted=0 and sudr.status=1  -->
+		and sudr.is_default=1
+
+		and sui.employee_id=sei.emp_id(+)
+		and sdi.is_deleted=0 and sdi.status=1
+		<!-- 		and -->
+		<!-- 		sui.is_deleted=0 and sui.status=1 -->
+		and
+		sdi.department_id=sudr.department_id
+		and
+		sdi.governing_branch=sdi2.department_id(+)
+		and
+		sdi.governing_area=sdi3.department_id(+)
+		<if test="noRole != null">
+			and sudr.user_id=ur.ui(+)
+		</if>
+		<if test="noRole == null">
+			and sudr.user_id=ur.ui
+		</if>
+		<include refid="queryInnerEmpCondition"/>
+		<include refid="suffix"/>
+	</select>
+	<sql id="querySocialGroupCondition">
+		select
+		sg.ss_group_id ssGroupId,
+		sg.insurance_name insuranceName,
+		sg.ss_group_type ssGroupType,
+		(select bc.city_name from bd_city bc where bc.city_id = sg.city_id )
+		as
+		cityName,
+		sg.city_id cityId,
+		sg.is_prc_need_apply ISPRCNEEDAPPLY
+		from
+		ss_group sg where sg.is_deleted=0
+		<if test="ssGroupType != null">and
+			sg.ss_group_type=#{ssGroupType}
+		</if>
+		<if test="socialName != null">and
+			sg.insurance_name like '%${socialName}%'
+		</if>
+		<if test="cityId != null">and
+			sg.city_id=#{cityId}
+			union
+			select
+			sg2.ss_group_id ssGroupId,
+			sg2.insurance_name insuranceName,
+			sg2.ss_group_type ssGroupType,
+			(select bc.city_name from bd_city bc
+			where bc.city_id = sg2.city_id ) as
+			cityName,
+			sg2.city_id cityId,
+			sg2.is_prc_need_apply ISPRCNEEDAPPLY
+			from
+			ss_city_includ sci,ss_group
+			sg2
+			where
+			sg2.city_id=sci.city_id
+			and sci.p_city_id=#{cityId} and
+			sg2.is_deleted=0 and sci.is_deleted=0
+			<if test="ssGroupType != null">and
+				sg2.ss_group_type=#{ssGroupType}
+			</if>
+			<if test="socialName != null">and
+				sg2.insurance_name like '%${socialName}%'
+			</if>
+		</if>
+	</sql>
+
+	<select id="querySocialGroupCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1)
+		from (
+		<include refid="querySocialGroupCondition"/>
+		)
+	</select>
+
+	<select id="querySocialGroup" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		<include refid="querySocialGroupCondition"/>
+		<include refid="suffix"/>
+	</select>
+
+	<sql id="queryBranchCondition">
+		select a.department_id departmentId,
+		a.department_name departmentName,
+		(select b.department_id from sys_department_info b where
+		a.governing_area =
+		b.department_id(+) AND b.status = 1) as
+		governingAreaId,
+		(select b.department_name from sys_department_info b
+		where a.governing_area =
+		b.department_id(+) AND b.status = 1) as
+		governingArea,
+		(select c.department_id from sys_department_info c where
+		a.governing_branch =
+		c.department_id(+) AND c.status = 1) as
+		governingBranchId,
+		(select c.department_name from sys_department_info c
+		where a.governing_branch
+		= c.department_id(+) AND c.status = 1) as
+		governingBranch,
+		bc.city_id AS cityId,
+		bc.city_name AS cityName
+		from
+		sys_department_info a, bd_city bc
+		where a.status = 1
+		and bc.city_id(+) =
+		a.city_id
+		<if test="departmentId != null">and
+			a.department_id =
+			#{departmentId}
+		</if>
+		<if test="governingAreaId != null">and
+			a.governing_area =
+			#{governingAreaId}
+		</if>
+		<if test="departmentGrade != null">and
+			a.department_grade =
+			#{departmentGrade}
+		</if>
+		<if test="providerType != null">and
+			a.provider_type =
+			#{providerType}
+		</if>
+		<if test="departmentName != null">and
+			a.department_name like
+			'%${departmentName}%'
+		</if>
+		<if test="departmentInternalCode != null">and
+			a.department_internal_code = #{departmentInternalCode}
+		</if>
+		<if test="filterByCSId != null">
+			and a.department_id  in(
+			select pca.provider_id from pd_provider_cs_auth pca
+			where pca.is_deleted = 0
+			and pca.start_dt &lt;= sysdate
+			and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			and pca.cs_id=#{filterByCSId}
+			)
+		</if>
+		<if test="departmentGrade != null">
+			<if test="departmentGrade == 3">
+				<if test="providerType != null">
+					<if test="providerType == 2">
+						<if test="prvdGroupId != null">and
+							exists(
+							select 1
+							from
+							pd_prvd_group_relation gpgr
+							where gpgr.is_deleted = 0
+							and gpgr.prvd_group_id = #{prvdGroupId}
+							and gpgr.provider_id = a.department_id
+							)
+						</if>
+					</if>
+				</if>
+			</if>
+		</if>
+
+	</sql>
+
+	<sql id="queryExBranchCondition">
+		SELECT a.department_id departmentid,
+		a.department_name departmentname,
+		(SELECT b.department_id
+		FROM sys_department_info b
+		WHERE a.governing_area = b.department_id(+)
+		AND b.status = 1) AS governingareaid,
+		(SELECT b.department_name
+		FROM sys_department_info b
+		WHERE a.governing_area = b.department_id(+)
+		AND b.status = 1) AS governingarea,
+		(SELECT c.department_id
+		FROM sys_department_info c
+		WHERE a.governing_branch = c.department_id(+)
+		AND c.status = 1) AS governingbranchid,
+		(SELECT c.department_name
+		FROM sys_department_info c
+		WHERE a.governing_branch = c.department_id(+)
+		AND c.status = 1) AS governingbranch,
+		nvl((SELECT greatest(to_char(add_months(to_date(MAX(bill.pd_ef_bill_month),
+		'yyyymm'),
+		1),
+		'yyyymm'),
+		to_char(SYSDATE, 'yyyymm'))
+		FROM pd_ef_bill bill
+		WHERE bill.is_deleted = 0
+		AND bill.is_locked = 1
+		AND bill.pd_provider_id = a.department_id),
+		to_char(SYSDATE, 'yyyymm')) billym,
+		bc.city_id AS cityid,
+		bc.city_name AS cityname,
+		et.pd_ef_template_id templtid,
+		et.agreed_bill_gen_dt billgendt,
+		et.agreed_bill_lock_dt billlockdt
+		FROM sys_department_info a,
+		bd_city             bc,
+		pd_ef_template      et
+		WHERE a.status = 1
+		AND bc.city_id(+) = a.city_id
+		AND a.department_id = et.provider_id
+		AND et.is_valid = 1
+		AND et.is_deleted = 0
+		<include refid="exUserManageUserAuthConditionSql"/>
+		<if test="departmentId != null">and
+			a.department_id =
+			#{departmentId}
+		</if>
+		<if test="governingAreaId != null">and
+			a.governing_area =
+			#{governingAreaId}
+		</if>
+		<if test="departmentGrade != null">and
+			a.department_grade =
+			#{departmentGrade}
+		</if>
+		<if test="providerType != null">and
+			a.provider_type =
+			#{providerType}
+		</if>
+		<if test="departmentName != null">and
+			a.department_name like
+			'%${departmentName}%'
+		</if>
+		<if test="departmentInternalCode != null">and
+			a.department_internal_code = #{departmentInternalCode}
+		</if>
+		<if test="departmentGrade != null">
+			<if test="departmentGrade == 3">
+				<if test="providerType != null">
+					<if test="providerType == 2">
+						<if test="prvdGroupId != null">and
+							exists(
+							select 1
+							from
+							pd_prvd_group_relation gpgr
+							where gpgr.is_deleted = 0
+							and gpgr.prvd_group_id = #{prvdGroupId}
+							and gpgr.provider_id = a.department_id
+							)
+						</if>
+					</if>
+				</if>
+			</if>
+		</if>
+	</sql>
+
+	<select id="queryBranchCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1)
+		from (
+		<include refid="queryBranchCondition"/>
+		)
+	</select>
+
+	<select id="queryExBranchCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1)
+		from (
+		<include refid="queryExBranchCondition"/>
+		)
+	</select>
+
+	<select id="getReportURL" resultType="string">
+		SELECT t.rpt_server_ip
+		FROM rpt_config t WHERE t.rpt_config_id = 1
+	</select>
+
+	<select id="getReportURLBySparkSql" resultType="string">
+		SELECT t.rpt_server_ip
+		FROM rpt_config t WHERE t.rpt_config_id = 2
+	</select>
+
+	<select id="queryBranch" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		<include refid="queryBranchCondition"/>
+		<include refid="suffix"/>
+	</select>
+
+	<select id="queryExBranch" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		<include refid="queryExBranchCondition"/>
+		<include refid="suffix"/>
+	</select>
+
+	<parameterMap id="tempPrcMap" type="java.util.HashMap">
+		<parameter property="tagId" mode="IN"/>
+		<parameter property="prcTag" jdbcType="INTEGER" javaType="int" mode="INOUT"/>
+	</parameterMap>
+	<update id="execImpPrc" parameterMap="tempPrcMap" statementType="CALLABLE">
+		{call ${prcName} (?,?)}
+	</update>
+
+	<select id="queryFileProviderCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(*)
+		from bd_file_provider fp, sys_department_info di
+		where fp.department_id = di.department_id
+		and fp.is_valid = 1
+		and fp.is_deleted = 0
+		<if test="fileProviderName != null">and
+			fp.file_provider_name like '%${fileProviderName}%'
+		</if>
+		<if test="maxRoleId == 2">and
+			fp.city_id in (select city_id from bd_city where area = #{governingArea})
+		</if>
+		<if test="maxRoleId == 3">and
+			fp.city_id = (select city_id from sys_department_info where department_id = #{governingBranch})
+		</if>
+	</select>
+
+	<select id="queryFileProvider" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		<include refid="prefix"/>
+		select fp.file_provider_id   fileProviderId,
+		fp.file_provider_name fileProviderName,
+		di.department_name    departmentName
+		from bd_file_provider fp, sys_department_info di
+		where fp.department_id = di.department_id
+		and fp.is_valid = 1
+		and fp.is_deleted = 0
+		<if test="fileProviderName != null">and
+			fp.file_provider_name like '%${fileProviderName}%'
+		</if>
+		<if test="maxRoleId == 2">and
+			fp.city_id in (select city_id from bd_city where area = #{governingArea})
+		</if>
+		<if test="maxRoleId == 3">and
+			fp.city_id = (select city_id from sys_department_info where department_id = #{governingBranch})
+		</if>
+		<include refid="suffix"/>
+	</select>
+
+	<select id="getReportV4URL" resultType="java.util.HashMap">
+		select to_char(t.type) as rptType,t.rpt_server_ip as serverIp from rpt_config_boe4 t
+	</select>
+
+	<sql id="selectCustomerSql">
+		select distinct bc. cust_id,
+		bc.cust_name,
+		bc.cust_code,
+		bc.cust_english_name,
+		bc.cust_short_name,
+		bc.IS_DELETED ,
+		bc.hr_contract,
+		bc.contact_tel,
+		bc.email
+		from bd_customer bc, sl_contract sc, sys_user_manage_user mu
+		where sc.cust_id = bc.cust_id
+		and sc.liability_cs = mu.managed_user_id
+		and mu.is_deleted = 0
+		and sc.contract_status = 2
+		and sc.contract_svc_state in (0, 1)
+		and sc.is_deleted = 0
+		and mu.user_id =#{userId}
+		and bc.is_deleted=0
+		<if test="custName != null">and
+			instr(cust_name,#{custName}) &gt; 0
+		</if>
+		<if test="custId != null">and cust_id=#{custId}
+		</if>
+		<if test="custCode != null">and
+			cust_code=#{custCode}
+		</if>
+		<if test="isDeleted != null">and
+			IS_DELETED=#{isDeleted}
+		</if>
+	</sql>
+
+	<select id="selectCustomer" parameterType="com.ctg.hro.entity.salemanage.Customer" resultMap="custResultMap">
+		<include refid="prefix"/>
+		<include refid="selectCustomerSql"/>
+		<include refid="suffix"/>
+	</select>
+	<select id="selectCustomerCount" parameterType="com.ctg.hro.entity.salemanage.Customer" resultType="int">
+		select count(1) from (
+		<include refid="selectCustomerSql"/>
+		)
+	</select>
+
+
+	<sql id="addMultiDynDataItem">
+		insert into pd_dyn_data (data_id, item_id, type_id, data_Value)
+	</sql>
+
+	<select id="queryBranchId" parameterType="java.util.HashMap" resultType="com.ctg.hro.entity.sysmanage.DeptDTO">
+		select di.department_id departmentId,
+		di.department_name departmentName,
+		di.provider_type providerType,
+		bc.city_id cityId,
+		bc.city_name cityName,
+		(select b.department_id from sys_department_info b where  di.governing_area = b.department_id(+)  AND b.status = 1) governingAreaId,
+		(select b.department_name from sys_department_info b where  di.governing_area = b.department_id(+)  AND b.status = 1) governingArea,
+		(select c.department_id from sys_department_info c where  di.governing_branch = c.department_id(+)  AND c.status = 1) governingBranchId,
+		(select c.department_name from sys_department_info c where  di.governing_branch = c.department_id(+)  AND c.status = 1) governingBranch
+		from sys_department_info di, bd_city bc
+		where di.is_deleted = 0
+		and di.status = 1
+		and di.department_grade = 3
+		and di.city_id(+) = bc.city_id
+		and di.department_id in
+		(select sp.assignee_provider_id
+		from bd_service_point sp
+		where sp.is_deleted = 0
+		and sp.service_branch_flag = 1
+		union all
+		select sp.assignee_provider_id
+		from bd_service_point sp
+		where sp.is_deleted = 0
+		and sp.service_branch_flag in (2, 4)
+		and exists (select 1
+		from bd_service_cust sc
+		where sc.is_deleted = 0
+		and sc.service_point_id = sp.service_point_id
+		and sc.cust_id = #{custId}
+		))
+		<if test="departmentName != null">and
+			di.department_name like '%${departmentName}%'
+		</if>
+		<if test="cityId != null">and
+			bc.city_id = #{cityId}
+		</if>
+	</select>
+
+	<select id="queryBranchIdCount" parameterType="java.util.HashMap" resultType="Integer">
+		select count(1)
+		from sys_department_info di, bd_city bc
+		where di.is_deleted = 0
+		and di.status = 1
+		and di.department_grade = 3
+		and di.city_id(+) = bc.city_id
+		and di.department_id in
+		(select sp.assignee_provider_id
+		from bd_service_point sp
+		where sp.is_deleted = 0
+		and sp.service_branch_flag = 1
+		union all
+		select sp.assignee_provider_id
+		from bd_service_point sp
+		where sp.is_deleted = 0
+		and sp.service_branch_flag in (2, 4)
+		and exists (select 1
+		from bd_service_cust sc
+		where sc.is_deleted = 0
+		and sc.service_point_id = sp.service_point_id
+		and sc.cust_id = #{custId}
+		))
+		<if test="departmentName != null">and
+			di.department_name like '%${departmentName}%'
+		</if>
+		<if test="cityId != null">and
+			bc.city_id = #{cityId}
+		</if>
+	</select>
+
+	<!-- copy from sqlmap-authentication.xml -->
+
+	<!--<sql id="commonAuthConditionSql">-->
+		<!--and exists(-->
+		<!--select 'x'-->
+		<!--from hs_subcontract hs, hs_subcontract_biz_auth cbm-->
+		<!--where hs.subcontract_id = cbm.subcontract_id-->
+		<!--and cbm.bizman_id = #{userId}-->
+		<!--and cbm.bizman_type = #{bizmanType}-->
+		<!--and cbm.start_dt &lt;= sysdate-->
+		<!--and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))-->
+		<!--<if test="subcontractAlias != null">and-->
+			<!--${subcontractAlias}.subcontract_id = hs.subcontract_id-->
+		<!--</if>-->
+		<!--)-->
+	<!--</sql>-->
+
+	<sql id="commonAuthConditionSql">
+		<if test="subcontractAlias != null">
+			and ${subcontractAlias}.subcontract_id in(
+			select distinct hs.subcontract_id   from hs_subcontract hs, hs_subcontract_biz_auth cbm
+			where hs.subcontract_id = cbm.subcontract_id
+			and cbm.bizman_id = #{userId}
+			and cbm.bizman_type = #{bizmanType}
+			<![CDATA[
+				 and cbm.start_dt <= sysdate
+				 and (cbm.end_dt is null or cbm.end_dt >= trunc(sysdate))
+				 ]]>
+			)
+		</if>
+	</sql>
+
+
+	<!--<sql id="subcontractAuthConditionSql">-->
+		<!--<if test="selByAuth == null">-->
+			<!--and exists(-->
+			<!--select 'x'-->
+			<!--from hs_subcontract_biz_auth cbm,sys_user_manage_user umu-->
+			<!--where cbm.bizman_id = umu.managed_user_id-->
+			<!--and umu.user_id = #{userId}-->
+			<!--and cbm.is_deleted=0-->
+			<!--and umu.is_deleted=0-->
+			<!--and cbm.start_dt &lt;= sysdate-->
+			<!--and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))-->
+			<!--<if test="bizmanType != null">and-->
+				<!--cbm.bizman_type = #{bizmanType}-->
+			<!--</if>-->
+			<!--<if test="subcontractAlias != null">-->
+				<!--and cbm.subcontract_id = ${subcontractAlias}.subcontract_id-->
+			<!--</if>-->
+			<!--)-->
+		<!--</if>-->
+	<!--</sql>-->
+
+	<sql id="subcontractAuthConditionSql">
+		<if test="selByAuth == null and subcontractAlias != null">
+			and ${subcontractAlias}.subcontract_id in (
+				select distinct cbm.subcontract_id   from  hs_subcontract_biz_auth cbm,sys_user_manage_user umu
+					where cbm.bizman_id = umu.managed_user_id
+						and umu.user_id = #{userId}
+						and cbm.is_deleted=0
+						and umu.is_deleted=0
+						and cbm.start_dt &lt;= sysdate
+						and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))
+						<if test="bizmanType != null">and
+							cbm.bizman_type = #{bizmanType}
+						</if>
+			)
+		</if>
+	</sql>
+
+
+
+	<!--<sql id="contractAuthConditionSql">-->
+		<!--and exists(-->
+		<!--select 'x'-->
+		<!--from hs_subcontract_biz_auth cbm,sys_user_manage_user umu-->
+		<!--where cbm.bizman_id = umu.managed_user_id-->
+		<!--and umu.user_id = #{userId}-->
+		<!--and cbm.is_deleted=0-->
+		<!--and umu.is_deleted=0-->
+		<!--and cbm.start_dt &lt;= sysdate-->
+		<!--and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))-->
+		<!--<if test="bizmanType != null">and-->
+			<!--cbm.bizman_type = #{bizmanType}-->
+		<!--</if>-->
+		<!--<if test="contractAlias != null">-->
+			<!--and cbm.contract_id = ${contractAlias}.contract_id-->
+		<!--</if>-->
+		<!--)-->
+	<!--</sql>-->
+
+	<sql id="contractAuthConditionSql">
+		<if test="contractAlias != null">
+			and ${contractAlias}.contract_id in(
+				select distinct cbm.contract_id  from  hs_subcontract_biz_auth cbm,sys_user_manage_user umu
+					where cbm.bizman_id = umu.managed_user_id
+					and umu.user_id = #{userId}
+					and cbm.is_deleted=0
+					and umu.is_deleted=0
+					and cbm.start_dt &lt;= sysdate
+					and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))
+					<if test="bizmanType != null">and
+						cbm.bizman_type = #{bizmanType}
+					</if>
+			)
+		</if>
+	</sql>
+	<sql id="roleAuthConditionSql">
+		<if test="branchTitleAlias != null">
+			and exists (select 1
+			from sys_role                     r,
+			sys_user_role_relation       ur,
+			sys_user_department_relation dr,
+			sys_department_info          di
+			where ur.role_id = r.role_id
+			and ur.user_id = dr.user_id
+			and dr.department_id = di.department_id
+			and di.governing_branch = ${branchTitleAlias}.branch_id
+			and r.is_deleted = 0
+			and r.status = 1
+			and ur.is_deleted = 0
+			and ur.status = 1
+			and dr.is_deleted = 0
+			and dr.status = 1
+			and di.is_deleted = 0
+			and di.status = 1
+			and r.biz_category = #{bizCategory}
+			and ur.user_id = #{userId})
+		</if>
+	</sql>
+
+	<!--<sql id="policyTypeCustomerAuthConditionSql">-->
+		<!--and exists(-->
+		<!--select 'x'-->
+		<!--from hs_subcontract hs, hs_subcontract_biz_auth cbm,sys_user_manage_user  umu-->
+		<!--where hs.subcontract_id = cbm.subcontract_id-->
+		<!--and umu.managed_user_id=cbm.bizman_id-->
+		<!--and umu.user_id = #{userId}-->
+		<!--and cbm.is_deleted=0-->
+		<!--and umu.is_deleted=0-->
+		<!--and (cbm.bizman_type = 4 or (hs.assignment_type=3 and cbm.bizman_type=5))-->
+		<!--and cbm.start_dt &lt;= sysdate-->
+		<!--and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))-->
+		<!--<if test="customerAlias != null">-->
+			<!--and cbm.cust_id = ${customerAlias}.cust_id-->
+		<!--</if>-->
+		<!--)-->
+	<!--</sql>-->
+
+
+	<sql id="policyTypeCustomerAuthConditionSql">
+		<if test="customerAlias != null">
+			and  ${customerAlias}.cust_id in(
+				select distinct cbm.cust_id  from hs_subcontract hs, hs_subcontract_biz_auth cbm,sys_user_manage_user  umu
+					where hs.subcontract_id = cbm.subcontract_id
+						and umu.managed_user_id=cbm.bizman_id
+						and umu.user_id = #{userId}
+						and cbm.is_deleted=0
+						and umu.is_deleted=0
+						and (cbm.bizman_type = 4 or (hs.assignment_type=3 and cbm.bizman_type=5))
+						and cbm.start_dt &lt;= sysdate
+						and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))
+			)
+		</if>
+	</sql>
+
+	<!--<sql id="customerAuthConditionSql">-->
+		<!--and ( exists(-->
+		<!--select 'x'-->
+		<!--from hs_subcontract_biz_auth cbm,sys_user_manage_user umu-->
+		<!--where cbm.bizman_id = umu.managed_user_id-->
+		<!--and umu.user_id = #{userId}-->
+		<!--and cbm.is_deleted=0-->
+		<!--and umu.is_deleted=0-->
+		<!--and cbm.start_dt &lt;= sysdate-->
+		<!--and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))-->
+		<!--<if test="bizmanType != null">and-->
+			<!--cbm.bizman_type = #{bizmanType}-->
+		<!--</if>-->
+		<!--<if test="customerAlias != null">-->
+			<!--and cbm.cust_id = ${customerAlias}.cust_id-->
+		<!--</if>-->
+		<!--)-->
+		<!--<if test="isBillQuery != null">-->
+			<!--OR EXISTS (-->
+			<!--SELECT 'X'-->
+			<!--FROM EF_RECEIVABLE_TEMPLATE ET-->
+			<!--WHERE EXISTS (SELECT 'X'-->
+			<!--FROM SYS_USER_ROLE_RELATION R, SYS_ROLE RL-->
+			<!--WHERE R.ROLE_ID = RL.ROLE_ID-->
+			<!--AND RL.STATUS = 1-->
+			<!--AND RL.ROLE_GRADE &lt;= 3-->
+			<!--AND RL.IS_DELETED = 0-->
+			<!--AND RL.BIZ_CATEGORY IN (50, 10)-->
+			<!--AND R.USER_ID = #{userId}-->
+			<!--AND R.STATUS = 1-->
+			<!--AND R.IS_DELETED = 0)-->
+			<!--<if test="billAlias != null">and-->
+				<!--ET.RECEIVABLE_TEMPLT_ID = ${billAlias}.RECEIVABLE_TEMPLT_ID-->
+			<!--</if>-->
+			<!--<if test="governingBranch != null">and-->
+				<!--ET.PAYEE_ID = #{governingBranch}-->
+			<!--</if>-->
+			<!--)-->
+		<!--</if>-->
+		<!--)-->
+	<!--</sql>-->
+
+
+	<sql id="customerAuthConditionSql">
+		<if test="customerAlias != null or isBillQuery != null">
+			and (
+		</if>
+		<if test="customerAlias != null">
+			 ${customerAlias}.cust_id in(
+				select distinct cbm.cust_id from hs_subcontract_biz_auth cbm,sys_user_manage_user umu
+					where cbm.bizman_id = umu.managed_user_id
+						and umu.user_id = #{userId}
+						and cbm.is_deleted=0
+						and umu.is_deleted=0
+						and cbm.start_dt &lt;= sysdate
+						and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))
+						<if test="bizmanType != null">and
+							cbm.bizman_type = #{bizmanType}
+						</if>
+			)
+		</if>
+		<if test="customerAlias != null and isBillQuery != null">
+			OR
+		</if>
+		<if test="isBillQuery != null">
+			EXISTS (
+			SELECT 'X'
+			FROM EF_RECEIVABLE_TEMPLATE ET
+			WHERE EXISTS (SELECT 'X'
+			FROM SYS_USER_ROLE_RELATION R, SYS_ROLE RL
+			WHERE R.ROLE_ID = RL.ROLE_ID
+			AND RL.STATUS = 1
+			AND RL.ROLE_GRADE &lt;= 3
+			AND RL.IS_DELETED = 0
+			AND RL.BIZ_CATEGORY IN (50, 10)
+			AND R.USER_ID = #{userId}
+			AND R.STATUS = 1
+			AND R.IS_DELETED = 0)
+			<if test="billAlias != null">and
+				ET.RECEIVABLE_TEMPLT_ID = ${billAlias}.RECEIVABLE_TEMPLT_ID
+			</if>
+			<if test="governingBranch != null">and
+				ET.PAYEE_ID = #{governingBranch}
+			</if>
+			)
+		</if>
+		<if test="customerAlias != null or isBillQuery != null">
+			)
+		</if>
+	</sql>
+
+
+	<sql id="customerAuthConditionSqlEx">
+		AND ${billAlias}.receivable_templt_id IN
+		(SELECT et.receivable_templt_id
+		FROM ef_receivable_template et
+		WHERE EXISTS (SELECT 'X'
+		FROM sys_user_role_relation r, sys_role rl
+		WHERE r.role_id = rl.role_id
+		AND rl.status = 1
+		AND rl.role_grade &lt;= 3
+		AND rl.is_deleted = 0
+		AND rl.biz_category IN (50, 10)
+		AND r.user_id = #{userId}
+		AND r.status = 1
+		AND r.is_deleted = 0)
+		<if test="governingBranch != null">and
+			et.payee_id =  #{governingBranch}
+		</if>
+		UNION ALL
+		SELECT et.receivable_templt_id
+		FROM ef_receivable_template et
+		WHERE EXISTS
+		(SELECT 1
+		FROM hs_subcontract_biz_auth cbm, sys_user_manage_user umu
+		WHERE cbm.bizman_id = umu.managed_user_id
+		AND umu.user_id = #{userId}
+		AND cbm.is_deleted = 0
+		AND umu.is_deleted = 0
+		AND cbm.start_dt &lt;= SYSDATE
+		AND (cbm.end_dt IS NULL OR cbm.end_dt &gt;= trunc(SYSDATE))
+		AND cbm.cust_id = et.cust_id)
+		)
+	</sql>
+
+	<!--<sql id="saleRoleCustomerAuthConditionSql">-->
+		<!--and ( exists(-->
+		<!--select 'x'-->
+		<!--from crm_productline_mapping cpm,sys_user_manage_user umu-->
+		<!--where cpm.productline_saler_id  = umu.managed_user_id-->
+		<!--and umu.user_id = #{userId}-->
+		<!--and cpm.is_deleted = 0-->
+		<!--and cpm.is_valid=1-->
+		<!--and cpm.productline_type=1-->
+		<!--and umu.is_deleted=0-->
+
+		<!--<if test="customerAlias != null">-->
+			<!--and cpm.productline_company_id = ${customerAlias}.cust_id-->
+		<!--</if>-->
+		<!--)-->
+		<!--<if test="isBillQuery != null">-->
+			<!--OR EXISTS (-->
+			<!--SELECT 'X'-->
+			<!--FROM EF_RECEIVABLE_TEMPLATE ET-->
+			<!--WHERE EXISTS (SELECT 'X'-->
+			<!--FROM SYS_USER_ROLE_RELATION R, SYS_ROLE RL-->
+			<!--WHERE R.ROLE_ID = RL.ROLE_ID-->
+			<!--AND RL.STATUS = 1-->
+
+			<!--AND RL.ROLE_GRADE &lt;= 3-->
+
+			<!--AND RL.IS_DELETED = 0-->
+			<!--AND RL.BIZ_CATEGORY IN (50, 10)-->
+			<!--AND R.USER_ID = #{userId}-->
+			<!--AND R.STATUS = 1-->
+			<!--AND R.IS_DELETED = 0)-->
+			<!--<if test="billAlias != null">and-->
+				<!--ET.RECEIVABLE_TEMPLT_ID = ${billAlias}.RECEIVABLE_TEMPLT_ID-->
+			<!--</if>-->
+			<!--<if test="governingBranch != null">and-->
+				<!--ET.PAYEE_ID = #{governingBranch}-->
+			<!--</if>-->
+			<!--)-->
+		<!--</if>-->
+		<!--)-->
+	<!--</sql>-->
+
+	<sql id="saleRoleCustomerAuthConditionSql">
+		<if test="customerAlias != null or isBillQuery != null">
+			and (
+		</if>
+		<if test="customerAlias != null">
+			${customerAlias}.cust_id in(
+				select distinct cpm.productline_company_id from crm_productline_mapping cpm,sys_user_manage_user umu
+					where cpm.productline_saler_id  = umu.managed_user_id
+					and umu.user_id = #{userId}
+					and cpm.is_deleted = 0
+					and cpm.is_valid=1
+					and cpm.productline_type=1
+					and umu.is_deleted=0
+			)
+		</if>
+		<if test="customerAlias != null and isBillQuery != null">
+			OR
+		</if>
+		<if test="isBillQuery != null">
+			EXISTS (
+			SELECT 'X'
+			FROM EF_RECEIVABLE_TEMPLATE ET
+			WHERE EXISTS (SELECT 'X'
+			FROM SYS_USER_ROLE_RELATION R, SYS_ROLE RL
+			WHERE R.ROLE_ID = RL.ROLE_ID
+			AND RL.STATUS = 1
+			AND RL.ROLE_GRADE &lt;= 3
+			AND RL.IS_DELETED = 0
+			AND RL.BIZ_CATEGORY IN (50, 10)
+			AND R.USER_ID = #{userId}
+			AND R.STATUS = 1
+			AND R.IS_DELETED = 0)
+			<if test="billAlias != null">and
+				ET.RECEIVABLE_TEMPLT_ID = ${billAlias}.RECEIVABLE_TEMPLT_ID
+			</if>
+			<if test="governingBranch != null">and
+				ET.PAYEE_ID = #{governingBranch}
+			</if>
+			)
+		</if>
+		<if test="customerAlias != null or isBillQuery != null">
+			)
+		</if>
+	</sql>
+
+	<sql id="externalSupplierAuthConditionSql">
+		<if test="selByAuth == null">
+			and exists
+			(select 'x'
+			from pd_provider_cs_auth pca
+			where pca.is_deleted = 0
+			and pca.start_dt &lt;= sysdate
+			and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			<if test="subcontractAlias != null">and
+				pca.provider_id = ${subcontractAlias}.assignee_provider_id
+			</if>
+			<if test="userId != null">and
+				pca.cs_id = #{userId}
+			</if>
+			)
+		</if>
+	</sql>
+	<!-- 用户管理用户表 权限控制 -->
+	<sql id="userManageUserAuthConditionSql">
+		and exists(
+		select 'x'
+		from sys_user_manage_user umu
+		where umu.user_id = #{userId}
+		and umu.is_deleted=0
+		<if test="userManageUserAlias != null">
+			and umu.managed_user_id = ${userManageUserAlias}.create_by
+		</if>
+		)
+	</sql>
+
+	<sql id="changeTaskAuthConditionSql">
+		<if test="selByAuth == null">
+			and exists
+			(select 'x'
+			from pd_provider_cs_auth pca
+			where pca.is_deleted = 0
+			and pca.start_dt &lt;= sysdate
+			and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			<if test="subcontractAlias != null">and
+				pca.provider_id = ${subcontractAlias}.provider_id
+			</if>
+			<if test="providerIdAlias != null">and
+				pca.provider_id = ${providerIdAlias}
+			</if>
+			<if test="prvdGroupIdAlias != null">and
+				pca.provider_id in (select ppgr.provider_id from pd_prvd_group_relation ppgr where  ppgr.is_deleted=0 and ppgr.prvd_group_id=${prvdGroupIdAlias} )
+			</if>
+			<if test="userId != null">and
+				pca.cs_id = #{userId}
+			</if>
+			)
+		</if>
+	</sql>
+
+	<sql id="exUserManageUserAuthConditionSql">
+		<if test="selByAuth == null">
+			and exists
+			(select 'x'
+			from pd_provider_cs_auth pca, sys_user_manage_user umu
+			where pca.cs_id = umu.managed_user_id
+			and umu.is_deleted = 0
+			and pca.is_deleted = 0
+			and pca.start_dt &lt;= sysdate
+			and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			<if test="providerIdAlias != null">and
+				pca.provider_id = ${providerIdAlias}
+			</if>
+			<if test="prvdGroupIdAlias != null">and
+				pca.provider_id in (select ppgr.provider_id from pd_prvd_group_relation ppgr where  ppgr.is_deleted=0 and ppgr.prvd_group_id=${prvdGroupIdAlias} )
+			</if>
+			<if test="userId != null">and
+				umu.user_id = #{userId}
+			</if>
+			)
+		</if>
+	</sql>
+
+	<sql id="allSubcontractAuthConditionSql">
+		<if test="selByAuth == null">
+			and ( exists (
+			select 'x'
+			from hs_subcontract_biz_auth cbm,sys_user_manage_user umu
+			where cbm.bizman_id = umu.managed_user_id
+			and umu.user_id = #{userId}
+			and cbm.is_deleted=0
+			and umu.is_deleted=0
+			and cbm.start_dt &lt;= sysdate
+			and (cbm.end_dt is null or cbm.end_dt &gt;= trunc(sysdate))
+			<if test="bizmanType != null">and
+				cbm.bizman_type = #{bizmanType}
+			</if>
+			<if test="subcontractAlias != null">
+				and cbm.subcontract_id = ${subcontractAlias}.subcontract_id
+			</if>
+			)
+			or exists
+			(select 'x'
+			from pd_provider_cs_auth pca
+			where pca.is_deleted = 0
+			and pca.start_dt &lt;= sysdate
+			and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			<if test="subcontractAlias != null">and
+				pca.provider_id = ${subcontractAlias}.assignee_provider_id
+			</if>
+			<if test="userId != null">and
+				pca.cs_id = #{userId}
+			</if>
+			))
+		</if>
+	</sql>
+
+</mapper>
