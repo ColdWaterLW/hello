@@ -8,7 +8,7 @@ jobs:
     if: github.head_ref != 'main' && !startsWith(github.head_ref, 'release')
     runs-on: ubuntu-latest
     steps:
-      - uses: xalvarez/prevent-file-change-action@ea13cf807460e54e1075c722c8544da796489394
+      - uses: xalvarez/prevent-file-change-action@ee75107299859769dd0d6707cfda13e983899483
         name: Prevent file change
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
