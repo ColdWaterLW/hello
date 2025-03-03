@@ -1,0 +1,4075 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Tue May 10 15:50:21 CST 2022-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctg.hro.dao.emphiresep.emporder.EmployeeHireSepDAO">
+	<sql id="queryCondition">
+		
+			<if test="status != null ">and
+				hehs.status = #{status}
+	  		</if>
+			<if test="custInternalNum != null ">and
+				hehs.cust_internal_num = #{custInternalNum}
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+			<if test="customerSize != null">and
+				bg.customer_size = #{customerSize}
+			</if>
+		
+	</sql>
+
+  <select id="queryEmpHireSepList" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	    <include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   	select hehs.emp_hire_sep_id empHireSepId,
+		       to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+		       to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+		       hehs.add_confirm_status addConfirmStatus,
+		       decode(hehs.add_confirm_status,
+		              1,
+		              '增员未提交',
+		              20,
+		              '等待接单方确认',
+		              22,
+		              '接单方挂起',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '增员完成') addConfirmStatusName,
+		       bc.cust_id custId,       
+		       bc.cust_code custCode,
+		       bc.cust_name custName,
+		       be.emp_id   empId,
+		       be.emp_code employeeCode,
+		       be.emp_name employeeName,
+		       hs.subcontract_id subcontractId,
+		       hs.subcontract_name subcontractName,
+		       sdi.provider_type providerType,
+		       hs.assigner_provider_id assignerProviderId,
+		       hs.assignee_provider_id assigneeProviderId
+		  from hs_emp_hire_sep     hehs,
+		       bd_customer         bc,
+		       bd_employee         be,
+		       hs_subcontract      hs,
+		       sys_department_info sdi
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hehs.add_confirm_status = 1
+		   and hehs.sep_confirm_status = 1
+    	<include refid="queryCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="queryEmpHireSepCount" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+   		select count(*)
+		  from hs_emp_hire_sep     hehs,
+		       bd_customer         bc,
+		       bd_employee         be,
+		       hs_subcontract      hs,
+		       sys_department_info sdi
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hehs.add_confirm_status = 1
+		   and hehs.sep_confirm_status = 1
+    	<include refid="queryCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+   
+   <sql id="editCondition">
+   		   <if test="changeMethod == 1">and			  
+			   	hehs.add_confirm_status = 1 and hehs.sep_confirm_status = 1 and hs.assigner_cs_id = #{userId} 
+			   	and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assigner_cs_id
+			           and di.governing_branch = hs.assigner_provider_id
+			        )
+		   </if>
+		   <if test="changeMethod == 2">and
+		   	
+				((hehs.add_confirm_status = 40 and (hehs.comm_insur_status = 40 or hehs.comm_insur_status is null) or hehs.add_confirm_status = 2 and hehs.comm_insur_status = 40) and hehs.sep_confirm_status = 1 or hehs.sep_confirm_status = 40) and hehs.alter_status in (1,40) and hs.assigner_cs_id = #{userId}
+				and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assigner_cs_id
+			           and di.governing_branch = hs.assigner_provider_id
+			         )
+		  	 
+		   </if>
+		   <if test="changeMethod == 3">and
+		   	
+				(hehs.add_confirm_status = 40 and hehs.sep_confirm_status = 1 or hehs.sep_confirm_status = 40) and hehs.alter_status in (1,40) and sdi.provider_type = 1 and hs.assignee_cs_id = #{userId}
+				and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assignee_cs_id
+			           and di.governing_branch = hs.assignee_provider_id
+			         )
+		  	 
+		   </if>
+		   <if test="changeMethod == 4">and
+		   	
+			    (hehs.add_confirm_status = 40 and hehs.sep_confirm_status = 1 or hehs.sep_confirm_status = 40) and hehs.alter_status in (1,40) and hs.assigner_cs_id = #{userId}
+			    and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assigner_cs_id
+			           and di.governing_branch = hs.assigner_provider_id
+			         )
+		  	 
+		   </if>
+    	
+			<if test="status != null ">and
+				hehs.status = #{status}
+	  		</if>
+			<if test="custInternalNum != null ">and
+				hehs.cust_internal_num = #{custInternalNum}
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+	  		<if test="idCardNum != null ">and
+				be.idc18 = FNC_15TO18(#{idCardNum})
+	  		</if>
+	  		<if test="hireStartDt != null ">and
+	  			
+	  			hehs.hire_dt &gt;= to_date(#{hireStartDt},'yyyy-MM-dd')
+	  			
+	  		</if>
+	  		<if test="hireEndDt != null ">and
+	  			
+	  			hehs.hire_dt &lt; to_date(#{hireEndDt},'yyyy-MM-dd') + 1
+	  			
+	  		</if>
+	  		<if test="sepStartDt != null ">and
+	  			
+	  			hehs.sep_dt &gt;= to_date(#{sepStartDt},'yyyy-MM-dd')
+	  			
+	  		</if>
+	  		<if test="sepEndDt != null ">and
+	  			
+	  			hehs.sep_dt &lt; to_date(#{sepEndDt},'yyyy-MM-dd') + 1
+	  			
+	  		</if>
+			<if test="customerSize != null">and
+				bg.customer_size = #{customerSize}
+			</if>
+		
+   </sql>
+   
+   <select id="queryEmpHireSepListForEdit" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	   	<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   	select hehs.emp_hire_sep_id empHireSepId,
+		       to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+		       to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+		       to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+		       to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd hh24:mi:ss') rptSepDt,
+		       hehs.add_confirm_status addConfirmStatus,
+		       hehs.alter_status alterStatus,
+		       hehs.sep_confirm_status sepConfirmStatus,
+		       decode(hehs.add_confirm_status,
+		              1,
+		              '增员未提交',
+		              20,
+		              '等待接单方确认',
+		              22,
+		              '接单方挂起',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '增员完成') addConfirmStatusName,
+		       decode(hehs.status, 1, '入职未生效', 2, '在职', 3, '离职') statusName,
+		       hehs.comm_insur_status commInsurStatus,
+		       hehs.cust_internal_num custInternalNum,
+		       hehs.batch_id batchId,
+		       hehs.city_id cityId,
+		       hehs.person_category_id personCategoryId,
+		       bc.cust_id custId,
+		       bc.cust_code custCode,
+		       bc.cust_name custName,
+		       decode(bc.cust_type, 0, '直销', 1, '渠道') custType,
+		       be.emp_id empId,
+		       be.emp_code employeeCode,
+		       be.emp_name employeeName,
+		       be.id_card_type idCardType,
+		       (select bbd.base_data_name
+                          from bd_base_data bbd
+                         where bbd.base_data_code = be.id_card_type
+                           and bbd.type = 45
+                           and bbd.is_deleted = 0) idCardTypeName,
+		       be.id_card_num idCardNum,
+		       be.contact_tel1 contactTel1,
+		       be.contact_tel2 contactTel2,
+		       hehs.subcontract_id subcontractId,
+		       hs.subcontract_name subcontractName,
+		       hs.cust_bill_templt_id billTempltId,
+		       hs.assigner_provider_id assignerProviderId,
+		       (SELECT sdi.department_name
+		          FROM sys_department_info sdi
+		         WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+		       hs.assignee_provider_id assigneeProviderId,
+		       hs.assigner_cs_id assignerCsId,
+		       hs.assignee_cs_id assigneeCsId,
+		       decode(hs.mode_of_operation, 1, 1, 0) isIndependent,
+		       sdi.department_name assigneeProvider,
+		       sdi.provider_type providerType,
+		       sc.contract_id contractId,
+		       sc.contract_name contractName,
+		       hhes.subtype_name subtypeName,
+		       hhet.super_type_name superTypeName,
+		       erf.frequency_id feeTempltId,
+		       erf.frequency_name feeTemplt,
+		       erf.month_in_advance monthInAdvance,
+		       erf.frequency,
+		       erf.fee_month feeMonth,
+		       sq.quotation_code quotationCode,
+		       sq.quotation_name quotationName,
+	   		   decode(bg.customer_size,1,'大型客户',2,'中型客户',3,'小型客户') customerSize
+		  from hs_emp_hire_sep hehs,
+		       bd_customer bc,
+		       bd_employee be,
+		       hs_subcontract hs,
+		       sl_contract sc,
+		       sys_department_info sdi,
+		       sl_quotation sq,
+		       hs_hire_list hhl,
+               hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+		       (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency 
+		         where is_deleted = 0
+		           and is_default = 1) erf,
+	   		   bd_group                bg
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.contract_id = sc.contract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hehs.hire_quotation_id = sq.quotation_id(+)
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hs.cust_bill_templt_id = erf.receivable_templt_id(+)
+		   and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+	   	   and bc.group_id = bg.group_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		<include refid="editCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="queryEmpHireSepCountForEdit" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+   		select count(*)
+		  from hs_emp_hire_sep hehs,
+		       bd_customer bc,
+		       bd_employee be,
+		       hs_subcontract hs,
+		       sl_contract sc,
+		       sys_department_info sdi,
+		       sl_quotation sq,
+		       hs_hire_list hhl,
+               hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+		       (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency 
+		         where is_deleted = 0
+		           and is_default = 1) erf,
+	  		    bd_group                bg
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.contract_id = sc.contract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hehs.hire_quotation_id = sq.quotation_id(+)
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hs.cust_bill_templt_id = erf.receivable_templt_id(+)
+		   and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+	  	   and bc.group_id = bg.group_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		<include refid="editCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+   
+   <sql id="perCondition">
+   			and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assignee_cs_id
+			           and di.governing_branch = hs.assignee_provider_id
+			         )
+		   
+			<if test="addConfirmStatus != null ">and
+				hehs.add_confirm_status = #{addConfirmStatus}
+	  		</if>
+			<if test="idCardType != null ">and
+				be.id_card_type = #{idCardType}
+	  		</if>
+	  		<if test="idCardNum != null ">and
+				be.idc18 = FNC_15TO18(#{idCardNum})
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+	  		<if test="rptHireStartDt != null ">and
+	  			
+				hehs.rpt_hire_dt &gt;= to_date(#{rptHireStartDt},'yyyy-mm-dd')
+				
+	  		</if>
+	  		<if test="rptHireEndDt != null ">and
+	  			
+				hehs.rpt_hire_dt &lt; to_date(#{rptHireEndDt},'yyyy-mm-dd') + 1
+				
+	  		</if>
+	  		<if test="areaType != null ">and
+				sc.area_type = #{areaType}
+	  		</if>
+	  		<if test="isHireCall != null ">and
+				hehs.is_hire_call = #{isHireCall}
+	  		</if>
+	  		<if test="associationStatus == 1">and
+				hehs.emp_hiresep_main_id is not null
+	  		</if>
+	  		<if test="associationStatus == 0">and
+				hehs.emp_hiresep_main_id is null
+	  		</if>
+		   	<if test="customerSize != null">and
+			    bg.customer_size = #{customerSize}
+		   	</if>
+		   <if test="smsSendStatus != null">and
+			   hehs.sms_send_status = #{smsSendStatus}
+		   </if>
+		   <if test="smsSendStartDt != null ">and
+			   hehs.sms_send_dt &gt;= to_date(#{smsSendStartDt},'yyyy-mm-dd')
+		   </if>
+		   <if test="smsSendEndDt != null ">and
+			   hehs.sms_send_dt &lt; to_date(#{smsSendEndDt},'yyyy-mm-dd') + 1
+		   </if>
+   </sql>
+   
+   <select id="queryEmpHireSepListForPer" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+   		<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+   		select hehs.emp_hire_sep_id empHireSepId,
+	           to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+	           to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+	           hehs.rpt_hire_by rptHireBy,
+	           to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+	           to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd hh24:mi:ss') rptSepDt,
+	           hehs.add_confirm_status addConfirmStatus,
+	           hehs.add_confirm_pro addConfirmPro, 
+	           decode(hehs.add_confirm_status,
+		              1,
+		              '增员未提交',
+		              20,
+		              '等待接单方确认',
+		              22,
+		              '接单方挂起',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '增员完成') addConfirmStatusName,
+	           hehs.cust_internal_num custInternalNum,
+	           hehs.hire_remark hireRemark,
+	           hehs.sep_reason sepReason,
+	           (select bbd.base_data_name
+		                 from bd_base_data bbd
+		                where bbd.base_data_code = hehs.sep_reason
+		                  and bbd.type = 101
+		                  and bbd.is_deleted = 0) sepReasonName,
+	           hehs.sep_remark sepRemark,
+	           decode(hehs.is_hire_call, 0, '否', 1, '是') isHireCallName,
+	           decode(hehs.is_archive,0,'否',1,'是') isArchiveName,
+	           hehs.ss_participate_location ssParticipateLocation,
+		       hehs.labor_relation_unit laborRelationUnit,
+		       hehs.is_there_ss_card isThereSsCard,
+		       hehs.is_there_a_coordinate_health isThereACoordinateHealth,   
+	           bc.cust_id custId,
+	           bc.cust_code custCode,
+	           bc.cust_name custName,
+	           decode(bc.cust_type, 0, '直销', 1, '渠道') custType,
+	           be.emp_id empId,
+	           be.emp_code employeeCode,
+	           be.emp_name employeeName,
+	           be.id_card_type idCardType,
+	           (select bbd.base_data_name
+                          from bd_base_data bbd
+                         where bbd.base_data_code = be.id_card_type
+                           and bbd.type = 45
+                           and bbd.is_deleted = 0) idCardTypeName,
+	           be.id_card_num idCardNum,
+	           be.contact_tel1 contactTel1,
+		       be.contact_tel2 contactTel2,
+	           hehs.subcontract_id subcontractId,
+	           hs.subcontract_name subcontractName,
+	           hs.cust_bill_templt_id billTempltId,
+	           hs.assigner_provider_id assignerProviderId,
+	           (SELECT sdi.department_name
+	                FROM sys_department_info sdi
+	               WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+	           hs.assignee_provider_id assigneeProviderId,
+	           sdi.department_name assigneeProvider,
+	           hs.assigner_cs_id assignerCsId,
+		       hs.assignee_cs_id assigneeCsId,
+	           decode(hs.assignment_type, 1, '执行单', 2, '协调单', 3, '收集单') assignmentType,
+	           decode(hs.mode_of_operation, 1, 1, 0) isIndependent,          
+		       (SELECT sui.real_name
+                  FROM sys_user_info sui
+                 WHERE hs.assigner_cs_id = sui.user_id(+)) assignerCs,
+	           hhes.subtype_name subtypeName,
+	           hhet.super_type_name superTypeName,
+	           erf.frequency_id   feeTempltId,
+	           erf.frequency_name   feeTemplt,
+	           erf.month_in_advance   monthInAdvance,
+	           erf.frequency,
+	           erf.fee_month          feeMonth, 
+	           sdi.provider_type providerType,
+	           sdi.city_id cityId,
+	           seih.emp_name rptHireByName,
+	           seis.emp_name rptSepByName,
+	           sc.contract_id contractId,
+	           decode(sc.area_type,1,'本地', 2, '大区内',3, '全国') areaTypeName,
+	           hehs.emp_hiresep_main_id empHiresepMainId,
+	           decode(hehs.emp_hiresep_main_id, '', '未关联', '已关联') associationStatus,
+	           (select bst.svc_type_name
+		          from bd_service_type bst
+		         where bst.svc_type_id = sc.contract_type) empTypeName,
+		       hehs.emp_add_id empAddId,
+	   		   hehs.emp_alter_id empAlterId,
+		       hehs.pending_reason pendingReason,
+		       decode(hehs.pending_reason ,1,'已通知员工，等待提交办理', 2, '员工未接听电话',3, '联系方式错误',4,'员工已离职',5,'对接人统一提供',6,'驻场客服收集材料',7,'供应商协助通知',8,'其他',9,'项目客服统一提供资料') pendingReasonName,
+		       hehs.person_category_id personCategoryId,
+		       (select count(1)
+		          from ct_emp_wechathiresep_main ehm
+		         where ehm.city_id = sdi.city_id
+		           and ehm.id_card_num = be.id_card_num                
+		           and ehm.is_deleted = 0
+		           and ehm.status = 20) hasAssociations,
+	   		   decode(bg.customer_size,1,'大型客户',2,'中型客户',3,'小型客户') customerSize,
+	   		   decode(hehs.sms_send_status,0,'未发送',1,'成功',2,'失败') smsSendStatusStr,
+	           hehs.sms_send_dt smsSendDt,
+	   		   hehs.dec_salary decSalary --gang.wen--
+	      from hs_emp_hire_sep hehs,
+	           sl_contract sc,
+	           bd_customer bc,
+	           bd_employee be,
+	           hs_subcontract hs,
+	           sys_department_info sdi,
+	           sys_employee_info seih,
+	           sys_employee_info seis,
+	           hs_hire_list hhl,
+               hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+	           (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency 
+		         where is_deleted = 0
+		           and is_default = 1) erf,
+	   			bd_group                bg
+	     where hehs.cust_id = bc.cust_id
+	       and hehs.emp_id = be.emp_id
+	       and hehs.subcontract_id = hs.subcontract_id    
+	       and hs.assignee_provider_id = sdi.department_id
+	       and hs.contract_id = sc.contract_id
+	       and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+	       and hs.cust_bill_templt_id = erf.receivable_templt_id(+)
+	       and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+	       and hehs.rpt_hire_by = seih.emp_id(+)
+	       and hehs.rpt_sep_by = seis.emp_id(+)
+	   	   and bc.group_id = bg.group_id(+)
+	       and hehs.is_deleted = 0
+	       and bc.is_deleted = 0
+	       and be.is_deleted = 0
+	       and hehs.add_confirm_status in (20,22)
+	       and hehs.sep_confirm_status = 1
+		   and sdi.provider_type = 1 
+		   and hs.assignee_cs_id = #{userId}
+	   <include refid="perCondition"/>
+	   <include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   	   <include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+   </select>
+   
+   <select id="queryEmpHireSepCountForPer" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+	  	select count(*)
+		  from hs_emp_hire_sep hehs,
+		       sl_contract sc,
+		       bd_customer bc,
+		       bd_employee be,
+		       hs_subcontract hs,
+		       sys_department_info sdi,
+		       sys_employee_info seih,
+		       sys_employee_info seis,
+		       hs_hire_list hhl,
+		       hs_hire_emp_subtype hhes,
+		       hs_hire_emp_type hhet,
+		       (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency
+		         where is_deleted = 0
+		           and is_default = 1) erf,
+	   			bd_group                bg
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hs.contract_id = sc.contract_id
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hs.cust_bill_templt_id = erf.receivable_templt_id(+)
+		   and hhl.subtype_id = hhes.subtype_id(+)
+		   and hhes.super_type_id = hhet.super_type_id(+)
+		   and hehs.rpt_hire_by = seih.emp_id(+)
+		   and hehs.rpt_sep_by = seis.emp_id(+)
+	   	   and bc.group_id = bg.group_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hehs.add_confirm_status in (20, 22)
+		   and hehs.sep_confirm_status = 1		   
+		   and sdi.provider_type = 1 
+		   and hs.assignee_cs_id = #{userId}
+	   <include refid="perCondition"/>
+	   <include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+   
+   <sql id="conCondition">
+   			and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assigner_cs_id
+			           and di.governing_branch = hs.assigner_provider_id
+			         )
+		   <if test="type == 2">and
+		   		hehs.add_confirm_status = 30 and hehs.sep_confirm_status = 1
+		   </if>
+		   <if test="type == 3">and
+		  	 	(hehs.add_confirm_status = 40 and hehs.sep_confirm_status = 1 or hehs.sep_confirm_status = 40) and hehs.alter_status = 30
+		   </if>
+		   
+			<if test="idCardType != null ">and
+				be.id_card_type = #{idCardType}
+	  		</if>
+	  		<if test="idCardNum != null ">and
+				be.idc18 = FNC_15TO18(#{idCardNum})
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+	  		<if test="rptHireStartDt != null ">and
+	  			
+				hehs.rpt_hire_dt &gt;= to_date(#{rptHireStartDt},'yyyy-mm-dd')
+				
+	  		</if>
+	  		<if test="rptHireEndDt != null ">and
+	  			
+				hehs.rpt_hire_dt &lt; to_date(#{rptHireEndDt},'yyyy-mm-dd') + 1
+				
+	  		</if>
+	  		<if test="areaType != null ">and
+				sc.area_type = #{areaType}
+	  		</if>
+		
+   </sql>
+   
+   <select id="queryEmpHireSepListForCon" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+   		<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+   		select hehs.emp_hire_sep_id empHireSepId,
+		       to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+		       to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+		       hehs.rpt_hire_by rptHireBy,
+		       to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+		       to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd hh24:mi:ss') rptSepDt,
+		       hehs.add_confirm_status addConfirmStatus,
+		       hehs.add_confirm_pro addConfirmPro,
+		       hehs.alter_confirm_pro alterConfirmPro,
+		       hehs.sep_confirm_status sepConfirmStatus,
+		       decode(hehs.add_confirm_status,
+		              1,
+		              '增员未提交',
+		              20,
+		              '等待接单方确认',
+		              22,
+		              '接单方挂起',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '增员完成') addConfirmStatusName,
+		       hehs.alter_status alterStatus,
+		       hehs.cust_internal_num custInternalNum,
+		       hehs.hire_remark hireRemark,
+		       hehs.sep_reason sepReason,
+		       (select bbd.base_data_name
+		                 from bd_base_data bbd
+		                where bbd.base_data_code = hehs.sep_reason
+		                  and bbd.type = 101
+		                  and bbd.is_deleted = 0) sepReasonName,
+		       hehs.sep_remark sepRemark,
+		       hehs.batch_id batchId,
+		       decode(hehs.is_hire_call, 0, '否', 1, '是') isHireCallName,
+		       decode(hehs.is_archive,0,'否',1,'是') isArchiveName,
+		       hehs.ss_participate_location ssParticipateLocation,
+		       hehs.labor_relation_unit laborRelationUnit,
+		       hehs.is_there_ss_card isThereSsCard,
+		       hehs.is_there_a_coordinate_health isThereACoordinateHealth,   
+		       bc.cust_id custId,
+		       bc.cust_code custCode,
+		       bc.cust_name custName,
+		       decode(bc.cust_type, 0, '直销', 1, '渠道') custType,
+		       be.emp_id empId,
+		       be.emp_code employeeCode,
+		       be.emp_name employeeName,
+		       be.id_card_type idCardType,
+		       (select bbd.base_data_name
+                          from bd_base_data bbd
+                         where bbd.base_data_code = be.id_card_type
+                           and bbd.type = 45
+                           and bbd.is_deleted = 0) idCardTypeName,
+		       be.id_card_num idCardNum,
+		       be.contact_tel1 contactTel1,
+		       be.contact_tel2 contactTel2,
+		       hehs.subcontract_id subcontractId,
+		       hs.subcontract_name subcontractName,
+		       hs.cust_bill_templt_id billTempltId,
+		       hs.assigner_provider_id assignerProviderId,
+		       (SELECT sdi.department_name
+	              FROM sys_department_info sdi
+	             WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+		       hs.assignee_provider_id assigneeProviderId,
+		       sdi.department_name assigneeProvider,
+		       hs.assigner_cs_id assignerCsId,
+		       hs.assignee_cs_id assigneeCsId,
+		       decode(hs.assignment_type, 1, '执行单', 2, '协调单', 3, '收集单') assignmentType,
+		       decode(hs.mode_of_operation, 1, 1, 0) isIndependent,
+		       hhes.subtype_name subtypeName,
+		       hhet.super_type_name superTypeName,
+		       erf.frequency_id 	feeTempltId,
+		       erf.frequency_name 	feeTemplt,
+		       erf.month_in_advance   monthInAdvance,
+		       erf.frequency,
+		       erf.fee_month          feeMonth, 
+		       sdi.provider_type providerType,
+		       hehs.city_id cityId,
+		       seih.emp_name rptHireByName,
+		       seis.emp_name rptSepByName,
+		       sc.contract_id contractId,
+		       decode(sc.area_type,1,'本地', 2, '大区内',3, '全国') areaTypeName,
+		       hehs.emp_add_id empAddId,
+	           hehs.emp_alter_id empAlterId,
+		       hehs.emp_stop_id empStopId,       
+		       hehs.update_by updateBy,
+		       hehs.person_category_id personCategoryId,
+	   		   hehs.dec_salary decSalary --gang.wen--
+		  from hs_emp_hire_sep hehs,
+		  	   sl_contract sc,
+		       bd_customer bc,
+		       bd_employee be,
+		       hs_subcontract hs,
+		       sys_department_info sdi,
+		       sys_employee_info seih,
+		       sys_employee_info seis,
+		       hs_hire_list hhl,
+               hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+		       (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency 
+		         where is_deleted = 0
+		           and is_default = 1) erf
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hs.contract_id = sc.contract_id
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hs.cust_bill_templt_id = erf.receivable_templt_id(+) 
+		   and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+		   and hehs.rpt_hire_by = seih.emp_id(+)
+		   and hehs.rpt_sep_by = seis.emp_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hs.assigner_cs_id = #{userId}		  
+		 <include refid="conCondition"/>
+		 <include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   		 <include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+   </select>
+   
+   <select id="queryEmpHireSepCountForCon" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+   	    select count(*)	
+   		  from hs_emp_hire_sep hehs,
+   		  	   sl_contract sc,
+		       bd_customer bc,
+		       bd_employee be,
+		       hs_subcontract hs,
+		       sys_department_info sdi,
+		       sys_employee_info seih,
+		       sys_employee_info seis,
+		       hs_hire_list hhl,
+               hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+		       (select receivable_templt_id,
+		               frequency_id,
+		               frequency_name,
+		               month_in_advance,
+		               frequency,
+		               fee_month
+		          from ef_receivable_frequency 
+		         where is_deleted = 0
+		           and is_default = 1) erf
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hs.contract_id = sc.contract_id
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hs.cust_bill_templt_id = erf.receivable_templt_id(+) 
+		   and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+		   and hehs.rpt_hire_by = seih.emp_id(+)
+		   and hehs.rpt_sep_by = seis.emp_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hs.assigner_cs_id = #{userId}	
+		 <include refid="conCondition"/>
+		 <include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+  
+   <select id="getEmpHireSepSeq" resultType="java.lang.String">
+   		select SEQ_HS_EMP_HIRE_SEP.nextval from dual
+   </select>
+    
+   <insert id="insertEmpHireSep" parameterType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep" useGeneratedKeys="true" keyProperty="empHireSepId">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Fri Dec 16 11:30:16 CST 2011.
+    -->
+    <selectKey keyProperty="empHireSepId" resultType="java.lang.String" order="BEFORE"> 
+		SELECT SEQ_HS_EMP_HIRE_SEP.nextval FROM dual
+	</selectKey>
+    insert into HS_EMP_HIRE_SEP (EMP_HIRE_SEP_ID,CREATE_DT,RPT_HIRE_DT
+      <if test="contractId != null">,
+        CONTRACT_ID
+      </if>
+      <if test="subcontractId != null">,
+        SUBCONTRACT_ID
+      </if>
+	   <if test="decSalary != null">,
+		   DEC_SALARY
+	   </if>
+      <if test="empId != null">,
+        EMP_ID
+      </if>
+      <if test="custId != null">,
+        CUST_ID
+      </if>
+      <if test="custInternalNum != null">,
+        CUST_INTERNAL_NUM
+      </if>
+      <if test="hireQuotationId != null">,
+        HIRE_QUOTATION_ID
+      </if>
+      <if test="sepQuotationId != null">,
+        SEP_QUOTATION_ID
+      </if>
+      <if test="empType != null">,
+        EMP_TYPE
+      </if>
+      <if test="status != null">,
+        STATUS
+      </if>
+      <if test="hireDt != null">,
+        HIRE_DT
+      </if>
+      <if test="rptHireBy != null">,
+        RPT_HIRE_BY
+      </if>
+      <if test="addReason != null">,
+        ADD_REASON
+      </if>
+      <if test="hireCompetitor != null">,
+        HIRE_COMPETITOR
+      </if>
+      <if test="hireRemark != null">,
+        HIRE_REMARK
+      </if>
+      <if test="isHireCall != null">,
+        IS_HIRE_CALL
+      </if>
+      <if test="actualWorkLoc != null">,
+        ACTUAL_WORK_LOC
+      </if>
+      <if test="fileCabCode != null">,
+        FILE_CAB_CODE
+      </if>
+      <if test="folderCode != null">,
+        FOLDER_CODE
+      </if>
+      <if test="positionId != null">,
+        POSITION_ID
+      </if>
+      <if test="addPerfectBy != null">,
+        ADD_PERFECT_BY
+      </if>
+      <if test="addPerfectDate != null">,
+        ADD_PERFECT_DT
+      </if>
+      <if test="addConfirmStatus != null">,
+        ADD_CONFIRM_STATUS
+      </if>
+      <if test="addConfirmPro != null">,
+        ADD_CONFIRM_PRO
+      </if>
+      <if test="addRemark != null">,
+        ADD_REMARK
+      </if>
+      <if test="addConfirmBy != null">,
+        ADD_CONFIRM_BY
+      </if>
+      <if test="addConfirmDate != null">,
+        ADD_CONFIRM_DT
+      </if>
+      <if test="alterPerfectBy != null">,
+        ALTER_PERFECT_BY
+      </if>
+      <if test="alterPerfectDate != null">,
+        ALTER_PERFECT_DT
+      </if>
+      <if test="alterStatus != null">,
+        ALTER_STATUS
+      </if>
+      <if test="alterRemark != null">,
+        ALTER_REMARK
+      </if>
+      <if test="alterConfirmPro != null">,
+        ALTER_CONFIRM_PRO
+      </if>
+      <if test="alterConfirmBy != null">,
+        ALTER_CONFIRM_BY
+      </if>
+      <if test="alterConfirmDate != null">,
+        ALTER_CONFIRM_DT
+      </if>
+      <if test="sepDt != null">,
+        SEP_DT
+      </if>
+      <if test="rptSepDt != null">,
+        RPT_SEP_DT
+      </if>
+      <if test="reduceReason != null">,
+        REDUCE_REASON
+      </if>
+      <if test="reduceDetailReason != null">,
+        reduce_detail_reason
+      </if>
+      <if test="sepPerfectBy != null">,
+        SEP_PERFECT_BY
+      </if>
+      <if test="sepPerfectDate != null">,
+        SEP_PERFECT_DT
+      </if>
+      <if test="sepConfirmHis != null">,
+        SEP_CONFIRM_HIS
+      </if>
+      <if test="rptSepBy != null">,
+        RPT_SEP_BY
+      </if>
+      <if test="sepReason != null">,
+        SEP_REASON
+      </if>
+      <if test="sepRemark != null">,
+        SEP_REMARK
+      </if>
+      <if test="sepProcessStatus != null">,
+        SEP_PROCESS_STATUS
+      </if>
+      <if test="sepConfirmDate != null">,
+        SEP_CONFIRM_DT
+      </if>
+      <if test="sepConfirmStatus != null">,
+        SEP_CONFIRM_STATUS
+      </if>
+      <if test="sepConfirmPro != null">,
+        SEP_CONFIRM_PRO
+      </if>
+      <if test="sepConfirmBy != null">,
+        SEP_CONFIRM_BY
+      </if>
+      <if test="isSepCall != null">,
+        IS_SEP_CALL
+      </if>
+      <if test="isRefund != null">,
+        IS_REFUND
+      </if>
+      <if test="isNeedSign != null">,
+        IS_NEED_SIGN
+      </if>
+      <if test="isArchive != null">,
+        IS_ARCHIVE
+      </if>
+      <if test="isSameInsur != null">,
+        IS_SAME_INSUR
+      </if>
+      <if test="prevPointer != null">,
+        PREV_POINTER
+      </if>
+      <if test="nextPointer != null">,
+        NEXT_POINTER
+      </if>
+      <if test="type1 != null">,
+        TYPE1
+      </if>
+      <if test="type2 != null">,
+        TYPE2
+      </if>
+      <if test="type3 != null">,
+        TYPE3
+      </if>
+      <if test="type4 != null">,
+        TYPE4
+      </if>
+      <if test="type5 != null">,
+        TYPE5
+      </if>
+      <if test="batchId != null">,
+        BATCH_ID
+      </if>
+      <if test="empHiresepMainId != null">,
+        EMP_HIRESEP_MAIN_ID
+      </if>
+      <if test="commInsurStatus != null">,
+        COMM_INSUR_STATUS
+      </if>
+      <if test="ssParticipateLocation != null">,
+        SS_PARTICIPATE_LOCATION
+      </if>
+      <if test="laborRelationUnit != null">,
+        LABOR_RELATION_UNIT
+      </if>
+      <if test="isThereSsCard != null">,
+        IS_THERE_SS_CARD
+      </if>
+      <if test="isThereACoordinateHealth != null">,
+        IS_THERE_A_COORDINATE_HEALTH
+      </if>
+      <if test="empAddId != null">,
+        EMP_ADD_ID
+      </if>
+	  <if test="empAlterId != null">,
+	    EMP_ALTER_ID
+	  </if>
+      <if test="reduceId != null">,
+        REDUCE_ID
+      </if>
+      <if test="pendingReason != null">,
+        PENDING_REASON
+      </if>
+      <if test="empStopId != null">,
+        EMP_STOP_ID
+      </if>
+      <if test="processInsId != null">,
+        PROCESS_INS_ID
+      </if>
+      <if test="empStopProcessState != null">,
+        EMP_STOP_PROCESS_STATE
+      </if>
+      <if test="cityId != null">,
+        CITY_ID
+      </if>
+      <if test="personCategoryId != null">,
+        PERSON_CATEGORY_ID
+      </if>
+      <if test="createBy != null">,
+        CREATE_BY
+      </if>
+      <if test="mimicBy != null">,
+        MIMIC_BY
+      </if>
+      <if test="proxyBy != null">,
+        PROXY_BY
+      </if>
+      )
+    values (#{empHireSepId,jdbcType=DECIMAL},sysdate,sysdate
+      <if test="contractId != null">,
+        #{contractId,jdbcType=DECIMAL}
+      </if>
+      <if test="subcontractId != null">,
+        #{subcontractId,jdbcType=DECIMAL}
+      </if>
+	   <if test="decSalary != null">,
+		   #{decSalary,jdbcType=DECIMAL}
+	   </if>
+      <if test="empId != null">,
+        #{empId,jdbcType=DECIMAL}
+      </if>
+      <if test="custId != null">,
+        #{custId,jdbcType=DECIMAL}
+      </if>
+      <if test="custInternalNum != null">,
+        #{custInternalNum,jdbcType=DECIMAL}
+      </if>
+      <if test="hireQuotationId != null">,
+        #{hireQuotationId,jdbcType=DECIMAL}
+      </if>
+      <if test="sepQuotationId != null">,
+        #{sepQuotationId,jdbcType=DECIMAL}
+      </if>
+      <if test="empType != null">,
+        #{empType,jdbcType=DECIMAL}
+      </if>
+      <if test="status != null">,
+        #{status,jdbcType=DECIMAL}
+      </if>
+      <if test="hireDt != null">,
+        to_date(#{hireDt},'yyyy-mm-dd')
+      </if>
+      <if test="rptHireBy != null">,
+        #{rptHireBy,jdbcType=DECIMAL}
+      </if>
+      <if test="addReason != null">,
+        #{addReason,jdbcType=DECIMAL}
+      </if>
+      <if test="hireCompetitor != null">,
+        #{hireCompetitor,jdbcType=DECIMAL}
+      </if>
+      <if test="hireRemark != null">,
+        #{hireRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="isHireCall != null">,
+        #{isHireCall,jdbcType=DECIMAL}
+      </if>
+      <if test="actualWorkLoc != null">,
+        #{actualWorkLoc,jdbcType=VARCHAR}
+      </if>
+      <if test="fileCabCode != null">,
+        #{fileCabCode,jdbcType=VARCHAR}
+      </if>
+      <if test="folderCode != null">,
+        #{folderCode,jdbcType=VARCHAR}
+      </if>
+      <if test="positionId != null">,
+        #{positionId,jdbcType=DECIMAL}
+      </if>
+      <if test="addPerfectBy != null">,
+        #{addPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="addPerfectDate != null">,
+        to_date(#{addPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="addConfirmStatus != null">,
+        #{addConfirmStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmPro != null">,
+        #{addConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="addRemark != null">,
+        #{addRemark,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmBy != null">,
+        #{addConfirmBy,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmDate != null">,
+        to_date(#{addConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="alterPerfectBy != null">,
+        #{alterPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="alterPerfectDate != null">,
+        to_date(#{alterPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="alterStatus != null">,
+        #{alterStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="alterRemark != null">,
+        #{alterRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="alterConfirmPro != null">,
+        #{alterConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="alterConfirmBy != null">,
+        #{alterConfirmBy,jdbcType=DECIMAL}
+      </if>
+      <if test="alterConfirmDate != null">,
+        to_date(#{alterConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepDt != null">,
+        to_date(#{sepDt},'yyyy-mm-dd')
+      </if>
+      <if test="rptSepDt != null">,
+        to_date(#{rptSepDt},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="reduceReason != null">,
+        #{reduceReason,jdbcType=DECIMAL}
+      </if>
+      <if test="reduceDetailReason != null">,
+        #{reduceDetailReason,jdbcType=VARCHAR}
+      </if>
+      <if test="sepPerfectBy != null">,
+        #{sepPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="sepPerfectDate != null">,
+        to_date(#{sepPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepConfirmHis != null">,
+        #{sepConfirmHis,jdbcType=VARCHAR}
+      </if>
+      <if test="rptSepBy != null">,
+        #{rptSepBy,jdbcType=DECIMAL}
+      </if>
+      <if test="sepReason != null">,
+        #{sepReason,jdbcType=DECIMAL}
+      </if>
+      <if test="sepRemark != null">,
+        #{sepRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="sepProcessStatus != null">,
+        #{sepProcessStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="sepConfirmDate != null">,
+        to_date(#{sepConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepConfirmStatus != null">,
+        #{sepConfirmStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="sepConfirmPro != null">,
+        #{sepConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="sepConfirmBy != null">,
+        #{sepConfirmBy,jdbcType=DECIMAL}
+      </if>
+      <if test="isSepCall != null">,
+        #{isSepCall,jdbcType=DECIMAL}
+      </if>
+      <if test="isRefund != null">,
+        #{isRefund,jdbcType=DECIMAL}
+      </if>
+      <if test="isNeedSign != null">,
+        #{isNeedSign,jdbcType=DECIMAL}
+      </if>
+      <if test="isArchive != null">,
+        #{isArchive,jdbcType=DECIMAL}
+      </if>
+      <if test="isSameInsur != null">,
+        #{isSameInsur,jdbcType=DECIMAL}
+      </if>
+      <if test="prevPointer != null">,
+        #{prevPointer,jdbcType=DECIMAL}
+      </if>
+      <if test="nextPointer != null">,
+        #{nextPointer,jdbcType=DECIMAL}
+      </if>
+      <if test="type1 != null">,
+        #{type1,jdbcType=VARCHAR}
+      </if>
+      <if test="type2 != null">,
+        #{type2,jdbcType=VARCHAR}
+      </if>
+      <if test="type3 != null">,
+        #{type3,jdbcType=VARCHAR}
+      </if>
+      <if test="type4 != null">,
+        #{type4,jdbcType=VARCHAR}
+      </if>
+      <if test="type5 != null">,
+        #{type5,jdbcType=VARCHAR}
+      </if>
+      <if test="batchId != null">,
+        #{batchId,jdbcType=DECIMAL}
+      </if>
+      <if test="empHiresepMainId != null">,
+        #{empHiresepMainId,jdbcType=DECIMAL}
+      </if>
+      <if test="commInsurStatus != null">,
+        #{commInsurStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="ssParticipateLocation != null">,
+        #{ssParticipateLocation,jdbcType=VARCHAR}
+      </if>
+      <if test="laborRelationUnit != null">,
+        #{laborRelationUnit,jdbcType=VARCHAR}
+      </if>
+      <if test="isThereSsCard != null">,
+        #{isThereSsCard,jdbcType=DECIMAL}
+      </if>
+      <if test="isThereACoordinateHealth != null">,
+        #{isThereACoordinateHealth,jdbcType=DECIMAL}
+      </if>
+      <if test="empAddId != null">,
+        #{empAddId,jdbcType=DECIMAL}
+      </if>
+	  <if test="empAlterId != null">,
+	    #{empAlterId,jdbcType=DECIMAL}
+	  </if>
+      <if test="reduceId != null">,
+        #{reduceId,jdbcType=DECIMAL}
+      </if>
+      <if test="pendingReason != null">,
+        #{pendingReason,jdbcType=DECIMAL}
+      </if>
+      <if test="empStopId != null">,
+        #{empStopId,jdbcType=DECIMAL}
+      </if>
+      <if test="processInsId != null">,
+        #{processInsId,jdbcType=DECIMAL}
+      </if>
+      <if test="empStopProcessState != null">,
+        #{empStopProcessState,jdbcType=DECIMAL}
+      </if>
+      <if test="cityId != null">, 
+		#{cityId,jdbcType=DECIMAL}
+	  </if>
+      <if test="personCategoryId != null">, 
+		#{personCategoryId,jdbcType=DECIMAL}
+	  </if>
+      <if test="createBy != null">,
+        #{createBy,jdbcType=DECIMAL}
+      </if>
+      <if test="mimicBy != null">,
+        #{mimicBy,jdbcType=DECIMAL}
+      </if>
+      <if test="proxyBy != null">,
+        #{proxyBy,jdbcType=DECIMAL}
+      </if>
+      )
+  </insert>
+  
+   <update id="updateEmpHireSep" parameterType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Fri Dec 16 11:30:16 CST 2011.
+    -->
+    update HS_EMP_HIRE_SEP set UPDATE_DT = sysdate
+      <if test="contractId != null">,
+        CONTRACT_ID = #{contractId,jdbcType=DECIMAL}
+      </if>
+      <if test="decSalary != null">,
+		  DEC_SALARY  = #{decSalary,jdbcType=DECIMAL}
+      </if>
+	   <if test="subcontractId != null">,
+		   SUBCONTRACT_ID = #{subcontractId,jdbcType=DECIMAL}
+	   </if>
+      <if test="empId != null">,
+        EMP_ID = #{empId,jdbcType=DECIMAL}
+      </if>
+      <if test="custId != null">,
+        CUST_ID = #{custId,jdbcType=DECIMAL}
+      </if>
+      <if test="custInternalNum != null">,
+        CUST_INTERNAL_NUM = #{custInternalNum,jdbcType=DECIMAL}
+      </if>
+      <if test="hireQuotationId != null">,
+        HIRE_QUOTATION_ID = #{hireQuotationId,jdbcType=DECIMAL}
+      </if>
+      <if test="sepQuotationId != null">,
+        SEP_QUOTATION_ID = #{sepQuotationId,jdbcType=DECIMAL}
+      </if>
+      <if test="empType != null">,
+        EMP_TYPE = #{empType,jdbcType=DECIMAL}
+      </if>
+      <if test="status != null">,
+        STATUS = #{status,jdbcType=DECIMAL}
+      </if>
+      <if test="hireDt != null">,
+        HIRE_DT = to_date(#{hireDt},'yyyy-mm-dd')
+      </if>
+      <if test="addReason != null">,
+        ADD_REASON = #{addReason,jdbcType=DECIMAL}
+      </if>
+      <if test="hireCompetitor != null">,
+        HIRE_COMPETITOR = #{hireCompetitor,jdbcType=DECIMAL}
+      </if>
+      <if test="hireRemark != null">,
+        HIRE_REMARK = #{hireRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="isHireCall != null">,
+        IS_HIRE_CALL = #{isHireCall,jdbcType=DECIMAL}
+      </if>
+      <if test="actualWorkLoc != null">,
+        ACTUAL_WORK_LOC = #{actualWorkLoc,jdbcType=VARCHAR}
+      </if>
+      <if test="fileCabCode != null">,
+        FILE_CAB_CODE = #{fileCabCode,jdbcType=VARCHAR}
+      </if>
+      <if test="folderCode != null">,
+        FOLDER_CODE = #{folderCode,jdbcType=VARCHAR}
+      </if>
+      <if test="positionId != null">,
+        POSITION_ID = #{positionId,jdbcType=DECIMAL}
+      </if>
+      <if test="addPerfectBy != null">,
+        ADD_PERFECT_BY = #{addPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="addPerfectDate != null">,
+        ADD_PERFECT_DT = to_date(#{addPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="addConfirmStatus != null">,
+        ADD_CONFIRM_STATUS = #{addConfirmStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmPro != null">,
+        ADD_CONFIRM_PRO = #{addConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="addRemark != null">,
+        ADD_REMARK = #{addRemark,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmBy != null">,
+        ADD_CONFIRM_BY = #{addConfirmBy,jdbcType=DECIMAL}
+      </if>
+      <if test="addConfirmDate != null">,
+        ADD_CONFIRM_DT = to_date(#{addConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="alterPerfectBy != null">,
+        ALTER_PERFECT_BY = #{alterPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="alterPerfectDate != null">,
+        ALTER_PERFECT_DT = to_date(#{alterPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="alterStatus != null">,
+        ALTER_STATUS = #{alterStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="alterRemark != null">,
+        ALTER_REMARK = #{alterRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="alterConfirmPro != null">,
+        ALTER_CONFIRM_PRO = #{alterConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="alterConfirmBy != null">,
+        ALTER_CONFIRM_BY = #{alterConfirmBy,jdbcType=DECIMAL}
+      </if>
+      <if test="alterConfirmDate != null">,
+        ALTER_CONFIRM_DT = to_date(#{alterConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepDt != null">,
+        SEP_DT = to_date(#{sepDt},'yyyy-mm-dd')
+      </if>
+      <if test="rptSepDt != null">,
+        RPT_SEP_DT = to_date(#{rptSepDt},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="reduceReason != null">,
+        REDUCE_REASON = #{reduceReason,jdbcType=DECIMAL}
+      </if>
+      <if test="reduceDetailReason != null">,
+        reduce_detail_reason = #{reduceDetailReason,jdbcType=VARCHAR}
+      </if>
+      <if test="sepPerfectBy != null">,
+        SEP_PERFECT_BY = #{sepPerfectBy,jdbcType=DECIMAL}
+      </if>
+      <if test="sepPerfectDate != null">,
+        SEP_PERFECT_DT = to_date(#{sepPerfectDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepConfirmHis != null">,
+        SEP_CONFIRM_HIS = #{sepConfirmHis,jdbcType=VARCHAR}
+      </if>
+      <if test="rptSepBy != null">,
+        RPT_SEP_BY = #{rptSepBy,jdbcType=DECIMAL}
+      </if>
+      <if test="sepReason != null">,
+        SEP_REASON = #{sepReason,jdbcType=DECIMAL}
+      </if>
+      <if test="sepRemark != null">,
+        SEP_REMARK = #{sepRemark,jdbcType=VARCHAR}
+      </if>
+      <if test="sepProcessStatus != null">,
+        SEP_PROCESS_STATUS = #{sepProcessStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="sepConfirmDate != null">,
+        SEP_CONFIRM_DT = to_date(#{sepConfirmDate},'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="sepConfirmStatus != null">,
+        SEP_CONFIRM_STATUS = #{sepConfirmStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="sepConfirmPro != null">,
+        SEP_CONFIRM_PRO = #{sepConfirmPro,jdbcType=VARCHAR}
+      </if>
+      <if test="sepConfirmBy != null">,
+        SEP_CONFIRM_BY = #{sepConfirmBy,jdbcType=VARCHAR}
+      </if>
+      <if test="isSepCall != null">,
+        IS_SEP_CALL = #{isSepCall,jdbcType=DECIMAL}
+      </if>
+      <if test="isRefund != null">,
+        IS_REFUND = #{isRefund,jdbcType=DECIMAL}
+      </if>
+      <if test="isNeedSign != null">,
+        IS_NEED_SIGN = #{isNeedSign,jdbcType=DECIMAL}
+      </if>
+      <if test="isArchive != null">,
+        IS_ARCHIVE = #{isArchive,jdbcType=DECIMAL}
+      </if>
+      <if test="isSameInsur != null">,
+        IS_SAME_INSUR = #{isSameInsur,jdbcType=DECIMAL}
+      </if>
+      <if test="prevPointer != null">,
+        PREV_POINTER = #{prevPointer,jdbcType=DECIMAL}
+      </if>
+      <if test="nextPointer != null">,
+        NEXT_POINTER = #{nextPointer,jdbcType=DECIMAL}
+      </if>
+      <if test="type1 != null">,
+        TYPE1 = #{type1,jdbcType=VARCHAR}
+      </if>
+      <if test="type2 != null">,
+        TYPE2 = #{type2,jdbcType=VARCHAR}
+      </if>
+      <if test="type3 != null">,
+        TYPE3 = #{type3,jdbcType=VARCHAR}
+      </if>
+      <if test="type4 != null">,
+        TYPE4 = #{type4,jdbcType=VARCHAR}
+      </if>
+      <if test="type5 != null">,
+        TYPE5 = #{type5,jdbcType=VARCHAR}
+      </if>
+      <if test="batchId != null">,
+        BATCH_ID = #{batchId,jdbcType=DECIMAL}
+      </if>
+      <if test="empHiresepMainId != null">,
+        EMP_HIRESEP_MAIN_ID = #{empHiresepMainId,jdbcType=DECIMAL}
+      </if>
+      <if test="commInsurStatus != null">,
+        COMM_INSUR_STATUS = #{commInsurStatus,jdbcType=DECIMAL}
+      </if>
+      <if test="ssParticipateLocation != null">,
+        SS_PARTICIPATE_LOCATION = #{ssParticipateLocation,jdbcType=VARCHAR}
+      </if>
+      <if test="laborRelationUnit != null">,
+        LABOR_RELATION_UNIT = #{laborRelationUnit,jdbcType=VARCHAR}
+      </if>
+      <if test="isThereSsCard != null">,
+        IS_THERE_SS_CARD = #{isThereSsCard,jdbcType=DECIMAL}
+      </if>
+      <if test="isThereACoordinateHealth != null">,
+        IS_THERE_A_COORDINATE_HEALTH = #{isThereACoordinateHealth,jdbcType=DECIMAL}
+      </if>
+      <if test="empAddId != null">,
+        EMP_ADD_ID = #{empAddId,jdbcType=DECIMAL}
+      </if>
+	  <if test="empAlterId != null">,
+	    EMP_ALTER_ID = #{empAlterId,jdbcType=DECIMAL}
+	  </if>
+      <if test="reduceId != null">,
+        REDUCE_ID = #{reduceId,jdbcType=DECIMAL}
+      </if>
+      <if test="pendingReason != null">,
+        PENDING_REASON = #{pendingReason,jdbcType=DECIMAL}
+      </if>
+      <if test="empStopId != null">,
+        EMP_STOP_ID = #{empStopId,jdbcType=DECIMAL}
+      </if>
+      <if test="processInsId != null">,
+        PROCESS_INS_ID = #{processInsId,jdbcType=DECIMAL}
+      </if>
+      <if test="empStopProcessState != null">,
+        EMP_STOP_PROCESS_STATE = #{empStopProcessState,jdbcType=DECIMAL}
+      </if>
+      <if test="cityId != null">,
+        CITY_ID = #{cityId,jdbcType=DECIMAL}
+      </if>
+      <if test="personCategoryId != null">,
+        PERSON_CATEGORY_ID = #{personCategoryId,jdbcType=DECIMAL}
+      </if>
+	  <if test="smsSendStatus != null">,
+	  	SMS_SEND_STATUS = #{smsSendStatus,jdbcType=DECIMAL}
+	  </if>
+	  <if test="smsSendDt != null">,
+		SMS_SEND_DT = #{smsSendDt,jdbcType=TIMESTAMP}
+      </if>
+      <if test="isDeleted != null">,
+        IS_DELETED = #{isDeleted,jdbcType=DECIMAL}
+      </if>
+      <if test="updateBy != null">,
+        UPDATE_BY = #{updateBy,jdbcType=DECIMAL}
+      </if>
+      <if test="mimicBy != null">,
+        MIMIC_BY = #{mimicBy,jdbcType=DECIMAL}
+      </if>
+      <if test="proxyBy != null">,
+        PROXY_BY = #{proxyBy,jdbcType=DECIMAL}
+      </if>
+    where EMP_HIRE_SEP_ID = #{empHireSepId,jdbcType=DECIMAL}
+  </update>
+  
+  <insert id="insertEmpHireSepHis" parameterType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+     insert into hs_emp_hire_sep_his
+	  (emp_hire_sep_his_id,
+	   emp_hire_sep_id,
+	   contract_id,
+	   subcontract_id,
+	   emp_id,
+	   cust_id,
+	   cust_internal_num,
+	   hire_quotation_id,
+	   sep_quotation_id,
+	   emp_type,
+	   status,
+	   rpt_hire_dt,
+	   hire_dt,
+	   rpt_hire_by,
+	   add_reason,
+	   hire_competitor,
+	   hire_remark,
+	   is_hire_call,
+	   actual_work_loc,
+	   file_cab_code,
+	   folder_code,
+	   position_id,
+	   add_perfect_by,
+	   add_perfect_dt,
+	   add_confirm_status,
+	   add_confirm_pro,
+	   add_remark,
+	   add_confirm_by,
+	   add_confirm_dt,
+	   alter_perfect_by,
+	   alter_perfect_dt,
+	   alter_status,
+	   alter_remark,
+	   alter_confirm_pro,
+	   alter_confirm_by,
+	   alter_confirm_dt,
+	   sep_dt,
+	   rpt_sep_dt,
+	   reduce_reason,
+	   reduce_detail_reason,
+	   sep_perfect_by,
+	   sep_perfect_dt,
+	   sep_confirm_his,
+	   rpt_sep_by,
+	   sep_reason,
+	   sep_remark,
+	   sep_process_status,
+	   sep_confirm_dt,
+	   sep_confirm_status,
+	   sep_confirm_pro,
+	   sep_confirm_by,
+	   is_sep_call,
+	   is_refund,
+	   is_need_sign,
+	   is_archive,
+	   is_same_insur,
+	   prev_pointer,
+	   next_pointer,
+	   type1,
+	   type2,
+	   type3,
+	   type4,
+	   type5,
+	   batch_id,
+	   comm_insur_status,
+	   ss_participate_location,
+	   labor_relation_unit,
+	   is_there_ss_card,
+	   is_there_a_coordinate_health,
+	   emp_add_id,
+	   emp_alter_id,
+	   reduce_id,
+	   pending_reason,
+	   emp_stop_id,
+	   process_ins_id,
+	   emp_stop_process_state,
+	   type,
+	   create_by,
+	   create_dt,
+	   mimic_by,
+	   proxy_by)
+	  select seq_hs_emp_hire_sep_his.nextval,
+	         emp_hire_sep_id,
+	         contract_id,
+	         subcontract_id,
+	         emp_id,
+	         cust_id,
+	         cust_internal_num,
+	         hire_quotation_id,
+	         sep_quotation_id,
+	         emp_type,
+	         status,
+	         rpt_hire_dt,
+	         hire_dt,
+	         rpt_hire_by,
+	         add_reason,
+	         hire_competitor,
+	         hire_remark,
+	         is_hire_call,
+	         actual_work_loc,
+	         file_cab_code,
+	         folder_code,
+	         position_id,
+	         add_perfect_by,
+	         add_perfect_dt,
+	         add_confirm_status,
+	         add_confirm_pro,
+	         add_remark,
+	         add_confirm_by,
+	         add_confirm_dt,
+	         alter_perfect_by,
+	         alter_perfect_dt,
+	         alter_status,
+	         alter_remark,
+	         alter_confirm_pro,
+	         alter_confirm_by,
+	         alter_confirm_dt,
+	         sep_dt,
+	         rpt_sep_dt,
+	         reduce_reason,
+	         reduce_detail_reason,
+	         sep_perfect_by,
+	         sep_perfect_dt,
+	         sep_confirm_his,
+	         rpt_sep_by,
+	         sep_reason,
+	         sep_remark,
+	         sep_process_status,
+	         sep_confirm_dt,
+	         sep_confirm_status,
+	         sep_confirm_pro,
+	         sep_confirm_by,
+	         is_sep_call,
+	         is_refund,
+	         is_need_sign,
+	         is_archive,
+	         is_same_insur,
+	         prev_pointer,
+	         next_pointer,
+	         type1,
+	         type2,
+	         type3,
+	         type4,
+	         type5,
+	         batch_id,
+	         comm_insur_status,
+	         ss_participate_location,
+	         labor_relation_unit,
+	         is_there_ss_card,
+	         is_there_a_coordinate_health,
+	         emp_add_id,
+			 emp_alter_id,
+	         reduce_id,
+	         pending_reason,
+	         emp_stop_id,
+			 process_ins_id,
+			 emp_stop_process_state,
+	         #{type},
+	         create_by,
+	         create_dt,
+	         mimic_by,
+	         proxy_by
+	    from hs_emp_hire_sep
+	   where emp_hire_sep_id = #{empHireSepId}
+	     and is_deleted = 0
+  </insert>
+  
+  <sql id="orderListCondition">
+ 			AND exists (select 1
+	          from sl_contract sc
+	         where sc.CONTRACT_ID = hs.CONTRACT_ID
+	           and sc.is_deleted = 0
+	           <if test="empType != null ">
+	           	AND sc.contract_type = #{empType}
+	           </if>
+	           )
+	    
+    		<if test="contractId != null ">and hs.CONTRACT_ID = #{contractId}</if>
+			<if test="employeeName != null "> AND be.emp_name = #{employeeName} </if>
+			<if test="custId != null "> AND bc.cust_id = #{custId} </if>
+			<if test="employeeCode != null "> AND be.emp_code = #{employeeCode} </if>
+			<if test="idCardNum != null "> AND be.idc18 = FNC_15TO18(#{idCardNum}) </if>
+			<if test="custInternalNum != null "> AND hehs.cust_internal_num = #{custInternalNum} </if>
+			<if test="assignerProviderId != null "> AND hs.assigner_provider_id = #{assignerProviderId} </if>
+			<if test="assigneeProviderId != null "> AND hs.assignee_provider_id = #{assigneeProviderId} </if>
+			<if test="subcontractName != null "> AND hs.subcontract_name LIKE '%${subcontractName}%' </if>
+			<if test="rptHireDt != null "> AND hehs.rpt_hire_dt &gt;= to_date('${rptHireDt}','yyyy-MM-dd')</if>
+			<if test="rptHireEndDt != null "> AND to_date('${rptHireEndDt}','yyyy-MM-dd')+1 &gt; hehs.rpt_hire_dt </if>
+			<if test="hireDt != null "> AND hehs.hire_dt &gt;= to_date('${hireDt}','yyyy-MM-dd')</if>
+			<if test="hireEndDt != null "> AND to_date('${hireEndDt}','yyyy-MM-dd')+1 &gt; hehs.hire_dt </if>
+			<if test="rptSepDt != null "> AND hehs.rpt_sep_dt &gt;= to_date('${rptSepDt}','yyyy-MM-dd')</if>
+			<if test="rptSepEndDt != null "> AND to_date('${rptSepEndDt}','yyyy-MM-dd') + 1&gt; hehs.rpt_sep_dt</if>
+			<if test="sepDt != null "> AND hehs.sep_dt&gt;= to_date('${sepDt}','yyyy-MM-dd')</if>
+			<if test="sepEndDt != null "> AND to_date('${sepEndDt}','yyyy-MM-dd')+1 &gt; hehs.sep_dt </if>
+			<if test="status != null "> AND hehs.status = #{status} </if>
+			<if test="addConfirmStatus != null "> AND hehs.add_confirm_status = #{addConfirmStatus} </if>
+			<if test="alterStatus != null "> AND hehs.alter_status = #{alterStatus} </if>
+			<if test="sepConfirmStatus != null "> AND hehs.sep_confirm_status = #{sepConfirmStatus} </if>
+			<if test="enhancedAgent != null "> AND sc.ENHANCED_AGENT = #{enhancedAgent} </if>
+			<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+	  		<if test="areaType != null ">and
+				sc.area_type = #{areaType}
+	  		</if>
+	  		<if test="assignmentType != null ">and
+				hs.assignment_type = #{assignmentType}
+		  	</if>
+		  	<if test="commInsurStatus != null "> AND hehs.COMM_INSUR_STATUS = #{commInsurStatus} </if>
+			<if test="splitFlag == 1">and
+				exists( select 1 from hs_subcontract_service hss
+				where hss.subcontract_id = hs.subcontract_id
+				and hss.is_deleted = 0
+				<if test="svcProviderId != null ">and
+					hss.svc_provider_id = #{svcProviderId}
+				</if>
+				<if test="csId != null ">and
+					hss.cs_id = #{csId}
+				</if>
+				)
+			</if>
+			<if test="customerSize != null">and
+				bg.customer_size = #{customerSize}
+			</if>
+		
+  </sql>
+  
+   <select id="getEmployeeOrderList" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	    <include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   	SELECT be.emp_id AS empId,
+	            hehs.emp_hire_sep_id AS empHireSepId,
+	               be.emp_name AS employeeName,
+	               be.emp_code AS employeeCode,
+	               (select bbd.base_data_name from bd_base_data bbd where bbd.base_data_code = be.id_card_type and bbd.type = 45) AS idCardType,
+	               be.id_card_num AS idCardNum,
+	               bc.cust_id AS custId,
+	               bc.cust_code AS custCode,
+	               bc.cust_name AS custName,
+	               hehs.cust_internal_num AS custInternalNum,
+	               be.contact_tel1 AS contactTel1,
+	               be.contact_tel2 AS contactTel2,
+	               hs.subcontract_id AS subcontractId,
+	               hs.subcontract_name AS subcontractName,
+	              (select bst.svc_type_name from sl_contract sc,bd_service_type bst where sc.contract_id = hs.contract_id and bst.svc_type_id = sc.contract_type and sc.is_deleted = 0) AS empType,
+	               hs.assigner_provider_id AS assignerProviderId,
+	                (SELECT sdi.department_name
+	                    FROM sys_department_info sdi
+	                   WHERE hs.assigner_provider_id = sdi.department_id(+))assignerProvider,
+	               hs.assignee_provider_id AS assigneeProviderId,
+	               (SELECT sdi.department_name
+	                    FROM sys_department_info sdi
+	                   WHERE hs.assignee_provider_id = sdi.department_id(+))assigneeProvider,
+	                   hs.assigner_cs_id AS assignerCsId,
+	                    (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hs.assigner_cs_id = sui.user_id(+))assignerCs,
+	                   hs.assignee_cs_id AS assigneeCsId,
+	                    (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hs.assignee_cs_id = sui.user_id(+))assigneeCs,
+	              to_char(hehs.hire_dt,'yyyy-mm-dd') AS hireDt,
+	              to_char(hehs.rpt_hire_dt,'yyyy-mm-dd hh24:mi:ss') AS rptHireDt,
+	               (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hehs.rpt_hire_by = sui.user_id(+))rptHireBy,
+	              hehs.hire_remark AS hireRemark,
+	              decode(hehs.status,1,'入职未生效',2,'在职',3,'离职')AS status,
+	              	hehs.add_confirm_status AS addConfirmStatus,
+                	decode(hehs.add_confirm_status,1,'增员未提交',20,'等待接单方确认',22,'接单方挂起',30,'等待派单方确认',40,'增员完成') AS addConfirmStatusName,
+                	hehs.alter_status AS alterStatus,
+                	decode(hehs.alter_status,1,'',20,'等待接单方确认',30,'等待派单方确认',40,'变更最终确认') AS alterStatusName,
+                	hehs.sep_confirm_status AS sepConfirmStatus,
+                	decode(hehs.sep_confirm_status,1,'',20,'等待接单方确认',23,'接单方驳回',30,'等待派单方确认',40,'离职完成') AS sepConfirmStatusName,
+	              to_char(hehs.rpt_sep_dt,'yyyy-mm-dd hh24:mi:ss') AS rptSepDt,
+	              to_char(hehs.sep_dt,'yyyy-mm-dd') AS sepDt,
+	              (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hehs.rpt_sep_by = sui.user_id(+))rptSepBy,
+	              hehs.sep_remark AS sepRemark,
+	              (select bbd.base_data_name from bd_base_data bbd where bbd.type = 101 and bbd.base_data_code = hehs.sep_reason and bbd.is_deleted = 0) AS sepReason,
+	              hehs.add_confirm_pro addConfirmPro,
+	              hehs.alter_confirm_pro alterConfirmPro,
+	              hehs.sep_confirm_pro sepConfirmPro,
+	              nvl2(be.birthday,trunc(months_between(sysdate,be.birthday)/12,0) ||'岁' ||trunc(mod(months_between(sysdate,be.birthday),12),0)||'月','') age,
+	              (select distinct sui.real_name
+			          from pd_provider_cs_auth pca, sys_user_info sui
+			         where pca.PROVIDER_ID = hs.assignee_provider_id
+			           and pca.is_deleted = 0
+			           and sysdate &gt;= pca.start_dt
+			           and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			           and pca.cs_id = sui.user_id(+)) AS providerCs,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.ATTACHMENT_TYPE = 1) AS isIDCardUpload,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.ATTACHMENT_TYPE = 2) AS isBankCardUpload,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.ATTACHMENT_TYPE = 3) AS isLaborContractUpload,
+			       decode(sc.area_type,1,'本地', 2, '大区内',3, '全国') areaTypeName,
+			       decode(hs.assignment_type, 1, '执行单', 2, '协调单', 3, '收集单') assignmentType,
+			       hehs.emp_hiresep_main_id empHiresepMainId,
+			       hehs.is_archive AS isArchive,
+			       hehs.COMM_INSUR_STATUS AS commInsurStatus,
+			       decode(hehs.COMM_INSUR_STATUS, 1, '未生效', 20, '待确认', 40, '生效') commInsurStatusName,
+		       	   hehs.ss_participate_location AS ssParticipateLocation,
+		       	   hehs.labor_relation_unit   AS  laborRelationUnit,
+		       	   hehs.is_there_ss_card AS isThereSsCard,
+		       	   hehs.is_there_a_coordinate_health AS isThereACoordinateHealth,
+		       	   hehs.actual_work_loc AS actualWorkLoc,
+	   			   hehs.dec_salary AS decSalary, --gang.wen
+		       	   sc.ENHANCED_AGENT AS enhancedAgent,
+		       	   decode(sc.ENHANCED_AGENT, 0, '否', 1, '是') enhancedAgentName,
+				   (select wm_concat(di.department_name || ':' || ui.real_name)
+				   from hs_subcontract_service hss, sys_department_info di, sys_user_info ui
+				   where hss.subcontract_id = hs.subcontract_id
+				   and hss.svc_provider_id = di.department_id(+)
+				   and hss.cs_id = ui.user_id(+)
+				   and hss.is_deleted = 0) splitServiceProviderCs,
+	   			   decode(bg.customer_size,1,'大型客户',2,'中型客户',3,'小型客户') customerSize,
+				   sc.sign_branch_title signBranchTitleId,
+				   bt.title_name signBranchTitleName
+	          FROM hs_emp_hire_sep hehs,
+	               hs_subcontract  hs,
+	               bd_employee     be,
+	               bd_customer     bc,
+	               sl_contract     sc,
+	   			   bd_group        bg,
+	   			   sys_branch_title bt
+	         WHERE be.emp_id = hehs.emp_id
+	           AND bc.cust_id = hehs.cust_id
+	           AND hehs.subcontract_id = hs.subcontract_id
+	           and hs.contract_id = sc.contract_id
+	   		   and bc.group_id = bg.group_id(+)
+	   		   and sc.sign_branch_title = bt.title_id(+)
+	           AND hehs.is_deleted = 0
+		<include refid="orderListCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="getEmployeeOrderListCount" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+   		SELECT count(1)
+	        FROM hs_emp_hire_sep hehs,
+	             hs_subcontract  hs,
+	             bd_employee     be,
+	             bd_customer     bc,
+	             sl_contract     sc,
+	  			 bd_group                bg
+	       WHERE be.emp_id = hehs.emp_id
+	         AND bc.cust_id = hehs.cust_id
+	         AND hehs.subcontract_id = hs.subcontract_id
+	         and hs.contract_id = sc.contract_id
+	  		 and bc.group_id = bg.group_id(+)
+	         AND hehs.is_deleted = 0
+	         <include refid="orderListCondition"/>
+	  	<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+   
+   <select id="getEmployeeOrderListExport" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	    <include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   	SELECT be.emp_id AS empId,
+	            hehs.emp_hire_sep_id AS empHireSepId,
+	               be.emp_name AS employeeName,
+	               be.emp_code AS employeeCode,
+	               (select bbd.base_data_name from bd_base_data bbd where bbd.base_data_code = be.id_card_type and bbd.type = 45) AS idCardType,
+	               be.id_card_num AS idCardNum,
+	               bc.cust_id AS custId,
+	               bc.cust_code AS custCode,
+	               bc.cust_name AS custName,
+	               hehs.cust_internal_num AS custInternalNum,
+	               be.contact_tel1 AS contactTel1,
+	               be.contact_tel2 AS contactTel2,
+	               hs.subcontract_id AS subcontractId,
+	               hs.subcontract_name AS subcontractName,
+	              (select bst.svc_type_name from sl_contract sc,bd_service_type bst where sc.contract_id = hs.contract_id and bst.svc_type_id = sc.contract_type and sc.is_deleted = 0) AS empType,
+	               hs.assigner_provider_id AS assignerProviderId,
+	                (SELECT sdi.department_name
+	                    FROM sys_department_info sdi
+	                   WHERE hs.assigner_provider_id = sdi.department_id(+))assignerProvider,
+	               hs.assignee_provider_id AS assigneeProviderId,
+	               (SELECT sdi.department_name
+	                    FROM sys_department_info sdi
+	                   WHERE hs.assignee_provider_id = sdi.department_id(+))assigneeProvider,
+	                   hs.assigner_cs_id AS assignerCsId,
+	                    (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hs.assigner_cs_id = sui.user_id(+))assignerCs,
+	                   hs.assignee_cs_id AS assigneeCsId,
+	                    (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hs.assignee_cs_id = sui.user_id(+))assigneeCs,
+	              to_char(hehs.hire_dt,'yyyy-mm-dd') AS hireDt,
+	              to_char(hehs.rpt_hire_dt,'yyyy-mm-dd hh24:mi:ss') AS rptHireDt,
+	               (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hehs.rpt_hire_by = sui.user_id(+))rptHireBy,
+	              hehs.hire_remark AS hireRemark,
+	              decode(hehs.status,1,'入职未生效',2,'在职',3,'离职')AS status,
+	              	hehs.add_confirm_status AS addConfirmStatus,
+                	decode(hehs.add_confirm_status,1,'增员未提交',20,'等待接单方确认',22,'接单方挂起',30,'等待派单方确认',40,'增员完成') AS addConfirmStatusName,
+                	hehs.alter_status AS alterStatus,
+                	decode(hehs.alter_status,1,'',20,'等待接单方确认',30,'等待派单方确认',40,'变更最终确认') AS alterStatusName,
+                	hehs.sep_confirm_status AS sepConfirmStatus,
+                	decode(hehs.sep_confirm_status,1,'',20,'等待接单方确认',23,'接单方驳回',30,'等待派单方确认',40,'离职完成') AS sepConfirmStatusName,
+	              to_char(hehs.rpt_sep_dt,'yyyy-mm-dd hh24:mi:ss') AS rptSepDt,
+	              to_char(hehs.sep_dt,'yyyy-mm-dd') AS sepDt,
+	              (SELECT sui.real_name
+	                    FROM sys_user_info sui
+	                   WHERE hehs.rpt_sep_by = sui.user_id(+))rptSepBy,
+	              hehs.sep_remark AS sepRemark,
+	              (select bbd.base_data_name from bd_base_data bbd where bbd.type = 101 and bbd.base_data_code = hehs.sep_reason and bbd.is_deleted = 0) AS sepReason,
+	              hehs.add_confirm_pro addConfirmPro,
+	              hehs.alter_confirm_pro alterConfirmPro,
+	              hehs.sep_confirm_pro sepConfirmPro,
+	              nvl2(be.birthday,trunc(months_between(sysdate,be.birthday)/12,0) ||'岁' ||trunc(mod(months_between(sysdate,be.birthday),12),0)||'月','') age,
+	              (select distinct sui.real_name
+			          from pd_provider_cs_auth pca, sys_user_info sui
+			         where pca.PROVIDER_ID = hs.assignee_provider_id
+			           and pca.is_deleted = 0
+			           and sysdate &gt;= pca.start_dt
+			           and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			           and pca.cs_id = sui.user_id(+)) AS providerCs,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.attachment_type = 1) AS isIDCardUpload,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.attachment_type = 2) AS isBankCardUpload,
+			       (select decode(count(bea.emp_id),0,'否','是')
+			          from bd_emp_attachment bea
+			         where bea.emp_id = be.emp_id
+			           and bea.is_deleted = 0
+			           and bea.status &gt; 0
+			           and bea.attachment_type = 3) AS isLaborContractUpload,
+			       decode(sc.area_type,1,'本地', 2, '大区内',3, '全国') areaTypeName,
+			       decode(hs.assignment_type, 1, '执行单', 2, '协调单', 3, '收集单') assignmentType,
+			       hehs.emp_hiresep_main_id empHiresepMainId,
+			       hehs.is_archive AS isArchive,
+			       hehs.COMM_INSUR_STATUS AS commInsurStatus,
+			       decode(hehs.COMM_INSUR_STATUS, 1, '未生效', 20, '待确认', 40, '生效') commInsurStatusName,
+			       sc.ENHANCED_AGENT AS enhancedAgent,
+		       	   decode(sc.ENHANCED_AGENT, 0, '否', 1, '是') enhancedAgentName,
+				   (select wm_concat(di.department_name || ':' || ui.real_name)
+				   from hs_subcontract_service hss, sys_department_info di, sys_user_info ui
+				   where hss.subcontract_id = hs.subcontract_id
+				   and hss.svc_provider_id = di.department_id(+)
+				   and hss.cs_id = ui.user_id(+)
+				   and hss.is_deleted = 0) splitServiceProviderCs,
+	   			   decode(bg.customer_size,1,'大型客户',2,'中型客户',3,'小型客户') customerSize,
+				   sc.sign_branch_title signBranchTitleId,
+				   bt.title_name signBranchTitleName,
+	   			   hehs.dec_Salary decSalary  --gang.wen--
+	          FROM hs_emp_hire_sep hehs,
+	               hs_subcontract  hs,
+	               bd_employee     be,
+	               bd_customer     bc,
+	               sl_contract     sc,
+	  			   bd_group        bg,
+	   			   sys_branch_title bt
+	         WHERE be.emp_id = hehs.emp_id
+	           AND bc.cust_id = hehs.cust_id
+	           AND hehs.subcontract_id = hs.subcontract_id
+	           and hs.contract_id = sc.contract_id
+	   		   and bc.group_id = bg.group_id(+)
+	   		   and sc.sign_branch_title = bt.title_id(+)
+	           AND hehs.is_deleted = 0
+	   	<include refid="orderListCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		order by hehs.emp_hire_sep_id desc
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+   
+    <!-- 根据条件查询雇员个人订单信息的结果  -->	
+	<select id="getEmployeeOrderById" parameterType="string" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+			SELECT be.emp_id empId,
+			       hehs.emp_hire_sep_id empHireSepId,
+			       be.emp_name employeeName,
+			       be.emp_code employeeCode,
+			       be.id_card_type idCardType,
+			       be.id_card_num idCardNum,
+			       bc.cust_id custId,
+			       bc.cust_code custCode,
+			       bc.cust_name custName,
+			       hehs.cust_internal_num custInternalNum,
+			       be.contact_tel1 contactTel1,
+			       be.contact_tel2 contactTel2,
+			       hs.subcontract_id subcontractId,
+			       hs.subcontract_name subcontractName,
+			       (select bst.svc_type_name
+			          from sl_contract sc, bd_service_type bst
+			         where sc.contract_id = hs.contract_id
+			           and bst.svc_type_id = sc.contract_type
+			           and sc.is_deleted = 0) empType,
+			       hs.assigner_provider_id assignerProviderId,
+			       (SELECT sdi.department_name
+			          FROM sys_department_info sdi
+			         WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+			       hs.assignee_provider_id assigneeProviderId,
+			       (SELECT sdi.department_name
+			          FROM sys_department_info sdi
+			         WHERE hs.assignee_provider_id = sdi.department_id(+)) assigneeProvider,
+			       hs.assigner_cs_id assignerCsId,
+			       (SELECT sui.real_name
+			          FROM sys_user_info sui
+			         WHERE hs.assigner_cs_id = sui.user_id(+)) assignerCs,
+			       hs.assignee_cs_id assigneeCsId,
+			       (SELECT sui.real_name
+			          FROM sys_user_info sui
+			         WHERE hs.assignee_cs_id = sui.user_id(+)) assigneeCs,
+			       to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+			       to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+			       (SELECT sui.real_name
+			          FROM sys_user_info sui
+			         WHERE hehs.rpt_hire_by = sui.user_id(+)) rptHireBy,
+			       hehs.hire_remark hireRemark,
+			       hehs.status status,
+			       to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd') rptSepDt,
+			       to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+			       (SELECT sui.real_name
+			          FROM sys_user_info sui
+			         WHERE hehs.rpt_sep_by = sui.user_id(+)) rptSepBy,
+			       hehs.sep_remark sepRemark,
+			       hehs.add_confirm_pro addConfirmPro,
+			       (SELECT sui.real_name
+			          FROM sys_user_info sui
+			         WHERE hehs.ADD_CONFIRM_BY = sui.user_id(+)) addConfirmBy,
+			       to_char(hehs.ADD_CONFIRM_DT, 'yyyy-mm-dd') addConfirmDate,
+			       hehs.add_remark addRemark,
+			       hehs.add_reason addReason,
+			       (SELECT bcp.company_name
+			          FROM bd_competitor bcp
+			         WHERE hehs.hire_competitor = bcp.competitor_id(+)) hireCompetitor,
+			       hehs.is_hire_call isHireCall,
+			       hehs.actual_work_loc actualWorkLoc,
+			       hehs.file_cab_code fileCabCode,
+			       hehs.folder_code folderCode,
+			       hehs.sep_reason sepReason,
+			       hehs.sep_confirm_pro sepConfirmPro,
+			       hehs.alter_confirm_pro alterConfirmPro,
+			       hehs.reduce_reason reduceReason,
+			       hehs.is_sep_call isSepCall,
+			       hehs.type1 type1,
+			       hehs.type2 type2,
+			       hehs.type3 type3,
+			       hehs.type4 type4,
+			       hehs.type5 type5,
+			       decode(hehs.reduce_reason,
+			              1,
+			              '',
+			              2,
+			              (select bc.company_name
+			                 from bd_competitor bc
+			                where bc.competitor_id = hehs.reduce_detail_reason
+			                  and bc.is_deleted = 0),
+			              3,
+			              hehs.reduce_detail_reason,
+			              4,
+			              (select bbd.base_data_name
+			                 from bd_base_data bbd
+			                where bbd.base_data_code = hehs.reduce_detail_reason
+			                  and bbd.type = 916
+			                  and bbd.is_deleted = 0),
+			              5,
+			              (select bbd.base_data_name
+			                 from bd_base_data bbd
+			                where bbd.base_data_code = hehs.reduce_detail_reason
+			                  and bbd.type = 917
+			                  and bbd.is_deleted = 0),
+			              6,
+			              hehs.reduce_detail_reason,
+			              7,
+			              '',
+			              8,
+			              '',
+			              9,
+			              '') reduceDetailReason,
+			       hehs.add_confirm_status addConfirmStatus,
+			       decode(hehs.add_confirm_status,
+			              1,
+			              '增员未提交',
+			              20,
+			              '等待接单方确认',
+			              22,
+			              '接单方挂起',
+			              30,
+			              '等待派单方确认',
+			              40,
+			              '增员完成') addConfirmStatusName,
+			       hehs.alter_status alterStatus,
+			       decode(hehs.alter_status,
+			              1,
+			              '',
+			              20,
+			              '等待接单方确认',
+			              30,
+			              '等待派单方确认',
+			              40,
+			              '变更最终确认') alterStatusName,
+			       hehs.sep_confirm_status sepConfirmStatus,
+			       decode(hehs.sep_confirm_status,
+			              1,
+			              '',
+			              20,
+			              '等待接单方确认',
+			              23,
+			              '接单方驳回',
+			              30,
+			              '等待派单方确认',
+			              40,
+			              '离职完成') sepConfirmStatusName,
+			       hehs.is_archive isArchive,
+			       decode(hehs.is_same_insur, 1, '是', 0, '否') isSameInsur,
+			       (select distinct sui.real_name
+			          from pd_provider_cs_auth pca, sys_user_info sui
+			         where pca.provider_id = hs.assignee_provider_id
+			           and pca.is_deleted = 0
+			           and sysdate &gt;= pca.start_dt
+			           and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			           and pca.cs_id = sui.user_id(+)) providerCs,
+			           (select distinct pca.CS_ID
+			          from pd_provider_cs_auth pca, sys_user_info sui
+			         where pca.provider_id = hs.assignee_provider_id
+			           and pca.is_deleted = 0
+			           and sysdate &gt;= pca.start_dt
+			           and (pca.end_dt is null or pca.end_dt &gt;= trunc(sysdate))
+			           and pca.cs_id = sui.user_id(+)) providerCsId,
+			       hehs.comm_insur_status commInsurStatus,
+			       decode(hehs.comm_insur_status, 1, '未生效', 20, '待确认', 40, '生效') commInsurStatusName,
+			       hehs.ss_participate_location ssParticipateLocation,
+			       hehs.labor_relation_unit laborRelationUnit,
+			       decode(hehs.is_there_ss_card, 1, '是', 0, '否') isThereSsCardText,
+			       decode(hehs.is_there_a_coordinate_health, 1, '是', 0, '否') isThereACoordinateHealthText,
+			       hehs.is_there_ss_card isThereSsCard,
+			       hehs.is_there_a_coordinate_health isThereACoordinateHealth,
+			       hehs.pending_reason pendingReason,
+			       sdi.provider_type providerType,
+			       hehs.dec_salary decSalary --gang.wen--
+			  FROM hs_emp_hire_sep hehs,
+			       hs_subcontract  hs,
+			       bd_employee     be,
+			       bd_customer     bc,
+			       sys_department_info sdi
+			 WHERE be.emp_id = hehs.emp_id
+			   AND bc.cust_id = hehs.cust_id
+			   AND hehs.subcontract_id = hs.subcontract_id
+			   AND hehs.is_deleted = 0
+			   and hs.assignee_provider_id = sdi.department_id(+)
+			   AND hehs.emp_hire_sep_id = #{empHireSepId}
+ 	</select>
+ 	
+ 	<sql id="sepApplyCondition">
+ 		
+			<if test="addConfirmStatus != null ">and
+				hehs.add_confirm_status = #{addConfirmStatus}
+	  		</if>
+			<if test="custInternalNum != null ">and
+				hehs.cust_internal_num = #{custInternalNum}
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="idCardNum != null ">and
+				be.idc18 = FNC_15TO18(#{idCardNum})
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+	  		<if test="areaType != null ">and
+				sc.area_type = #{areaType}
+	  		</if>
+		
+ 	</sql>
+ 	
+	<select id="queryEmpHireSepListForSepApply" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+   		<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+		select hehs.emp_hire_sep_id empHireSepId,
+			to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+			to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+			to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+			to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd hh24:mi:ss') rptSepDt,
+			hehs.add_confirm_status addConfirmStatus,
+			decode(hehs.add_confirm_status,1,'增员未提交',20,'等待接单方确认',22,'接单方挂起',30,'等待派单方确认',40,'增员完成') addConfirmStatusName,
+			decode(hehs.alter_status,1,'',20,'等待接单方确认',30,'等待派单方确认',40,'变更最终确认') alterStatusName,
+			decode(hehs.sep_confirm_status,
+			1,
+			'',
+			20,
+			'等待接单方确认',
+			23,
+			'接单方驳回',
+			30,
+			'等待派单方确认',
+			40,
+			'离职完成') sepConfirmStatusName,
+			decode(hehs.status, 1, '入职未生效', 2, '在职', 3, '离职') statusName,
+			hehs.cust_internal_num custInternalNum,
+			bc.cust_id custId,
+			bc.cust_code custCode,
+			bc.cust_name custName,
+			decode(bc.cust_type, 0, '直销', 1, '渠道') custType,
+			be.emp_id empId,
+			be.emp_code employeeCode,
+			be.emp_name employeeName,
+			be.id_card_type idCardType,
+			be.id_card_num idCardNum,
+			hehs.subcontract_id subcontractId,
+			hs.assigner_provider_id assignerProviderId,
+			hs.assignee_provider_id assigneeProviderId,
+			hs.SIGN_PROVIDER_ID signProviderId,
+			hs.assigner_cs_id assignerCsId,
+			hs.assignee_cs_id assigneeCsId,
+			hs.subcontract_name subcontractName,
+			hehs.is_sep_call isSepCall,
+			hehs.sep_reason sepReason,
+			hehs.sep_remark sepRemark,
+			hehs.reduce_reason reduceReason,
+			hehs.reduce_detail_reason reduceDetailReason,
+			sdi.provider_type providerType,
+			sc.contract_type empType,
+			decode(sc.area_type,1,'本地', 2, '大区内',3, '全国') areaTypeName,
+			tt.corporation_id corporationId,
+			tt.name corporationName
+			from hs_emp_hire_sep hehs,
+			sl_contract 	   sc,
+			bd_customer     bc,
+			bd_employee     be,
+			hs_subcontract  hs,
+			sys_department_info sdi,
+			(select t.emp_hire_sep_id, t.corporation_id, ec.name
+			from (select lc.corporation_id,
+			lc.emp_hire_sep_id,
+			row_number() over(PARTITION BY lc.emp_hire_sep_id ORDER BY decode(lc.sign_status, 1, 4, 4, 3, 2, 2, 0, 0) desc, lc.create_dt desc) rn
+			from hs_labor_contract lc
+			where lc.IS_DELETED = 0) t,
+			ec_company ec
+			where t.corporation_id = ec.id(+)
+			and t.rn = 1) tt
+			where hehs.cust_id = bc.cust_id
+			and hehs.emp_id = be.emp_id
+			and hehs.subcontract_id = hs.subcontract_id
+			and hs.assignee_provider_id = sdi.department_id
+			and hs.contract_id = sc.contract_id
+			and hehs.is_deleted = 0
+			and bc.is_deleted = 0
+			and be.is_deleted = 0
+			<![CDATA[
+			   and hehs.add_confirm_status <> 30
+			   ]]>
+			and hehs.alter_status in (1,40)
+			and hehs.sep_confirm_status = 1
+			and (hehs.comm_insur_status = 40 or hehs.comm_insur_status is null)
+			and hehs.emp_hire_sep_id = tt.emp_hire_sep_id(+)
+		<include refid="sepApplyCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="queryEmpHireSepCountForSepApply" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+   		select count(*)
+		  from hs_emp_hire_sep hehs,
+		  	   sl_contract 	   sc,
+		       bd_customer     bc,
+		       bd_employee     be,
+		       hs_subcontract  hs,
+		       sys_department_info sdi
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hs.contract_id = sc.contract_id
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   
+		   and hehs.add_confirm_status &lt;&gt; 30
+		   
+		   and hehs.alter_status in (1,40)
+		   and hehs.sep_confirm_status = 1
+		   and (hehs.comm_insur_status = 40 or hehs.comm_insur_status is null)
+    	<include refid="sepApplyCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+   </select>
+   
+   <sql id="sepConCondition">
+   		
+		   	<if test="type == 1">and
+		   		hehs.sep_confirm_status = 20 and sdi.provider_type=1 
+		   		and hs.assignee_cs_id = #{userId}
+		   		and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assignee_cs_id
+			           and di.governing_branch = hs.assignee_provider_id
+			         )
+		   	</if>
+		   	<if test="type == 2">and
+		  	 	hehs.sep_confirm_status = 30
+		  	 	and hs.assigner_cs_id = #{userId}
+		  	 	and exists
+			 (select 1
+			          from sys_user_department_relation dr, sys_department_info di
+			         where dr.department_id = di.department_id
+			           and dr.is_deleted = 0
+			           and dr.status = 1
+			           and dr.user_id = hs.assigner_cs_id
+			           and di.governing_branch = hs.assigner_provider_id
+			         )
+		   	</if>
+		   	<if test="addConfirmStatus != null ">and
+				hehs.add_confirm_status = #{addConfirmStatus}
+	  		</if>
+			<if test="sepConfirmStatus != null ">and
+				hehs.sep_confirm_status = #{sepConfirmStatus}
+	  		</if>
+			<if test="custInternalNum != null ">and
+				hehs.cust_internal_num = #{custInternalNum}
+	  		</if>
+			<if test="custCode != null ">and
+				bc.cust_code = #{custCode}
+	  		</if>
+			<if test="custName != null ">and
+				 instr(bc.cust_name,#{custName}) &gt; 0 
+	  		</if>
+	  		<if test="employeeCode != null ">and
+				be.emp_code = #{employeeCode}
+	  		</if>
+	  		<if test="employeeName != null ">and
+				be.emp_name = #{employeeName}
+	  		</if>
+	  		<if test="idCardNum != null ">and
+				be.idc18 = FNC_15TO18(#{idCardNum})
+	  		</if>
+	  		<if test="assignerProviderId != null ">and
+				hs.assigner_provider_id = #{assignerProviderId}
+	  		</if>
+	  		<if test="assigneeProviderId != null ">and
+				hs.assignee_provider_id = #{assigneeProviderId}
+	  		</if>
+	  		<if test="assignerCsId != null ">and
+				hs.assigner_cs_id = #{assignerCsId}
+	  		</if>
+	  		<if test="assigneeCsId != null ">and
+				hs.assignee_cs_id = #{assigneeCsId}
+	  		</if>
+	  		<if test="subcontractId != null ">and
+				hs.subcontract_id = #{subcontractId}
+	  		</if>
+			<if test="subcontractName != null ">and
+				hs.subcontract_name like '%${subcontractName}%'
+	  		</if>
+	  		<if test="rptSepStartDt != null ">and
+	  			
+				hehs.rpt_sep_dt &gt;= to_date(#{rptSepStartDt},'yyyy-mm-dd')
+				
+	  		</if>
+	  		<if test="rptSepEndDt != null ">and
+	  			
+				hehs.rpt_sep_dt &lt; to_date(#{rptSepEndDt},'yyyy-mm-dd') + 1
+				
+	  		</if>
+	  		<if test="areaType != null ">and
+				sc.area_type = #{areaType}
+	  		</if>
+	  		<if test="empType != null ">and
+				hehs.emp_type = #{empType}
+	  		</if>
+			<if test="customerSize != null">and
+				bg.customer_size = #{customerSize}
+			</if>
+		   <if test="sepReason != null">and
+			   hehs.sep_reason = #{sepReason}
+		   </if>
+		   <if test="reduceReason != null">and
+			   hehs.reduce_reason = #{reduceReason}
+		   </if>
+		   <if test="materialSignStatus != null">and
+			   qt.material_sign_status = #{materialSignStatus}
+		   </if>
+   </sql>
+   
+   <select id="queryEmpHireSepListForSepCon" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+   		<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   select hehs.emp_hire_sep_id empHireSepId,
+			   to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+			   to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+			   to_char(hehs.sep_dt, 'yyyy-mm-dd') sepDt,
+			   to_char(hehs.rpt_sep_dt, 'yyyy-mm-dd hh24:mi:ss') rptSepDt,
+			   hehs.add_confirm_status addConfirmStatus,
+			   decode(hehs.add_confirm_status,
+			   1,
+			   '增员未提交',
+			   20,
+			   '等待接单方确认',
+			   22,
+			   '接单方挂起',
+			   30,
+			   '等待派单方确认',
+			   40,
+			   '增员完成') addConfirmStatusName,
+			   hehs.sep_confirm_status sepConfirmStatus,
+			   decode(hehs.sep_confirm_status,
+			   1,
+			   '',
+			   20,
+			   '等待接单方确认',
+			   23,
+			   '接单方驳回',
+			   30,
+			   '等待派单方确认',
+			   40,
+			   '离职完成') sepConfirmStatusName,
+			   decode(hehs.status, 1, '入职未生效', 2, '在职', 3, '离职') statusName,
+			   hehs.cust_internal_num custInternalNum,
+			   bc.cust_id custId,
+			   bc.cust_code custCode,
+			   bc.cust_name custName,
+			   be.emp_id empId,
+			   be.emp_code employeeCode,
+			   be.emp_name employeeName,
+			   be.id_card_type idCardType,
+			   be.id_card_num idCardNum,
+			   hehs.subcontract_id subcontractId,
+			   hs.assigner_provider_id assignerProviderId,
+			   (SELECT sdi.department_name
+			   FROM sys_department_info sdi
+			   WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+			   hs.assignee_provider_id assigneeProviderId,
+			   sdi.department_name assigneeProvider,
+			   hs.SIGN_PROVIDER_ID signProviderId,
+			   hs.assigner_cs_id assignerCsId,
+			   (SELECT sui.real_name
+			   FROM sys_user_info sui
+			   WHERE hs.assigner_cs_id = sui.user_id(+)) assignerCs,
+			   hs.assignee_cs_id assigneeCsId,
+			   (SELECT sui.real_name
+			   FROM sys_user_info sui
+			   WHERE hs.assignee_cs_id = sui.user_id(+)) assigneeCs,
+			   hs.subcontract_name subcontractName,
+			   hehs.is_sep_call isSepCall,
+			   decode(hehs.is_sep_call, 0, '否', 1, '是') isSepCallName,
+			   hehs.sep_reason sepReason,
+			   (select bbd.base_data_name
+			   from bd_base_data bbd
+			   where bbd.base_data_code = hehs.sep_reason
+			   and bbd.type = 101
+			   and bbd.is_deleted = 0) sepReasonName,
+			   hehs.reduce_reason reduceReason,
+			   (select bbd.base_data_name
+			   from bd_base_data bbd
+			   where bbd.base_data_code = hehs.reduce_reason
+			   and bbd.type = 915
+			   and bbd.is_deleted = 0) reduceReasonName,
+			   decode(hehs.reduce_reason,
+			   1,
+			   '',
+			   2,
+			   (select bc.company_name
+			   from bd_competitor bc
+			   where bc.competitor_id = hehs.reduce_detail_reason
+			   and bc.is_deleted = 0),
+			   3,
+			   hehs.reduce_detail_reason,
+			   4,
+			   (select bbd.base_data_name
+			   from bd_base_data bbd
+			   where bbd.base_data_code = hehs.reduce_detail_reason
+			   and bbd.type = 916
+			   and bbd.is_deleted = 0),
+			   5,
+			   (select bbd.base_data_name
+			   from bd_base_data bbd
+			   where bbd.base_data_code = hehs.reduce_detail_reason
+			   and bbd.type = 917
+			   and bbd.is_deleted = 0),
+			   6,
+			   hehs.reduce_detail_reason,
+			   7,
+			   '',
+			   8,
+			   '',
+			   9,
+			   '') reduceDetailReasonName,
+			   hehs.sep_remark sepRemark,
+			   hehs.sep_confirm_pro sepConfirmPro,
+			   sdi.provider_type providerType,
+			   hehs.rpt_sep_by rptSepBy,
+			   seis.emp_name rptSepByName,
+			   be.contact_tel1 contactTel1,
+			   be.contact_tel2 contactTel2,
+			   decode(sc.area_type, 1, '本地', 2, '大区内', 3, '全国') areaTypeName,
+	   		   sc.contract_type empType,
+			   (select bst.svc_type_name
+			   from bd_service_type bst
+			   where bst.svc_type_id = sc.contract_type) empTypeName,
+			   hehs.reduce_id reduceId,
+			   hhes.subtype_name subtypeName,
+			   hhet.super_type_name superTypeName,
+			   decode(bg.customer_size, 1, '大型客户', 2, '中型客户', 3, '小型客户') customerSize,
+			   decode(qt.quit_sign_type, 1, '电子版', 2, '纸质版') quitSignTypeName,
+			   qt.material_sign_status materialSignStatus,
+			   decode(qt.material_sign_status,
+			   1,
+			   '未签署',
+			   2,
+			   '已签署',
+			   3,
+			   '已作废') materialSignStatusName,
+			   decode(qt.material_status,
+			   1,
+			   '未发起',
+			   2,
+			   '拟定中',
+			   3,
+			   '签署中',
+			   4,
+			   '作废中',
+			   5,
+			   '已完成',
+			   6,
+			   '已过期',
+			   7,
+			   '已撤回',
+			   9,
+			   '已作废',
+			   10,
+			   '已发起作废') materialStatusName,
+			   decode(qt.certificate_status,
+			   1,
+			   '未发起',
+			   5,
+			   '已完成',
+			   6,
+			   '已过期',
+			   9,
+			   '已作废') certificateStatusName,
+			   tt.SIGN_STATUS signStatus
+			   from hs_emp_hire_sep hehs,
+			   sl_contract sc,
+			   bd_customer bc,
+			   bd_employee be,
+			   hs_subcontract hs,
+			   sys_department_info sdi,
+			   sys_employee_info seis,
+			   hs_hire_list hhl,
+			   hs_hire_emp_subtype hhes,
+			   hs_hire_emp_type hhet,
+			   bd_group bg,
+			   (select eq.quit_sign_type,
+			   eq.material_sign_status,
+			   eq.material_status,
+			   eq.certificate_status,
+			   eq.emp_hire_sep_id
+			   from ec_quit_task eq
+			   where eq.is_last = 1
+			   and eq.is_deleted = 0) qt,
+			   (select t.emp_hire_sep_id, t.sign_status
+			   from (select lc.emp_hire_sep_id,
+			   lc.sign_status,
+			   row_number() over(PARTITION BY lc.emp_hire_sep_id ORDER BY lc.create_dt desc) rn
+			   from hs_labor_contract lc
+			   where lc.is_deleted = 0) t
+			   where t.rn = 1) tt
+			   where hehs.cust_id = bc.cust_id
+			   and hehs.emp_id = be.emp_id
+			   and hehs.subcontract_id = hs.subcontract_id
+			   and hs.assignee_provider_id = sdi.department_id
+			   and hs.contract_id = sc.contract_id
+			   and hehs.rpt_sep_by = seis.emp_id(+)
+			   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+			   and hhl.subtype_id = hhes.subtype_id(+)
+			   and hhes.super_type_id = hhet.super_type_id(+)
+			   and bc.group_id = bg.group_id(+)
+			   and hehs.emp_hire_sep_id = qt.emp_hire_sep_id(+)
+			   and hehs.emp_hire_sep_id = tt.emp_hire_sep_id(+)
+			   and hehs.is_deleted = 0
+			   and bc.is_deleted = 0
+			   and be.is_deleted = 0
+    	<include refid="sepConCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="queryEmpHireSepCountForSepCon" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+  		select count(*) 
+  		  from hs_emp_hire_sep hehs,
+  		       sl_contract 	   sc,
+		       bd_customer     bc,
+		       bd_employee     be,
+		       hs_subcontract  hs,
+		       sys_department_info sdi,
+		       sys_employee_info seis,
+		       hs_hire_list hhl,
+		       hs_hire_emp_subtype hhes,
+               hs_hire_emp_type hhet,
+	  		   bd_group                bg,
+			  (select eq.quit_sign_type,
+			  eq.material_sign_status,
+			  eq.material_status,
+			  eq.certificate_status,
+			  eq.emp_hire_sep_id
+			  from ec_quit_task eq
+			  where eq.is_last = 1
+			  and eq.is_deleted = 0) qt
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hs.assignee_provider_id = sdi.department_id
+		   and hs.contract_id = sc.contract_id
+		   and hehs.rpt_sep_by = seis.emp_id(+)
+		   and hehs.emp_hire_sep_id = hhl.emp_hire_sep_id(+)
+		   and hhl.subtype_id = hhes.subtype_id(+)
+           and hhes.super_type_id = hhet.super_type_id(+)
+	       and bc.group_id = bg.group_id(+)
+	 	   and hehs.emp_hire_sep_id = qt.emp_hire_sep_id(+)
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+    	<include refid="sepConCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+  </select>
+  
+  <update id="updateEmpHireSepCancel" parameterType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+  		update hs_emp_hire_sep hehs
+			   set (hehs.contract_id,
+			        hehs.subcontract_id,
+			         hehs.DEC_SALARY,
+			        hehs.emp_id,
+			        hehs.cust_id,
+			        hehs.cust_internal_num,
+			        hehs.hire_quotation_id,
+			        hehs.sep_quotation_id,
+			        hehs.emp_type,
+			        hehs.status,
+			        hehs.rpt_hire_dt,
+			        hehs.hire_dt,
+			        hehs.rpt_hire_by,
+			        hehs.add_reason,
+			        hehs.hire_competitor,
+			        hehs.hire_remark,
+			        hehs.is_hire_call,
+			        hehs.actual_work_loc,
+			        hehs.file_cab_code,
+			        hehs.folder_code,
+			        hehs.position_id,
+	           		hehs.add_perfect_dt,
+			        hehs.add_confirm_status,
+			        hehs.add_confirm_pro,
+			        hehs.add_remark,
+			        hehs.add_confirm_by,
+			        hehs.add_confirm_dt,
+	            	hehs.alter_perfect_dt,
+			        hehs.alter_status,
+			        hehs.alter_remark,
+			        hehs.alter_confirm_pro,
+			        hehs.alter_confirm_by,
+			        hehs.alter_confirm_dt,
+			        hehs.sep_dt,
+			        hehs.rpt_sep_dt,
+			        hehs.reduce_reason,
+			        hehs.reduce_detail_reason,
+		            hehs.sep_perfect_dt,
+		            hehs.sep_confirm_his,
+		            hehs.rpt_sep_by,
+		            hehs.sep_reason,
+		            hehs.sep_remark,
+		            hehs.sep_process_status,
+		            hehs.sep_confirm_dt,
+		            hehs.sep_confirm_status,
+		            hehs.sep_confirm_pro,
+		            hehs.sep_confirm_by,
+		            hehs.is_sep_call,
+		            hehs.is_refund,
+		            hehs.is_need_sign,
+		            hehs.is_archive,
+		            hehs.prev_pointer,
+		            hehs.next_pointer,
+		            hehs.type1,
+		            hehs.type2,
+		            hehs.type3,
+		            hehs.type4,
+		            hehs.type5,
+		            hehs.batch_id,
+		            hehs.create_by,
+		            hehs.create_dt,
+		            hehs.update_by,
+	                hehs.update_dt,
+	                hehs.mimic_by,
+	                hehs.proxy_by) =
+	           (select hehsh.contract_id,
+	                   hehsh.subcontract_id,
+	                    hehsh.DEC_SALARY,
+	                   hehsh.emp_id,
+	                   hehsh.cust_id,
+	                   hehsh.cust_internal_num,
+	                   hehsh.hire_quotation_id,
+	                   hehsh.sep_quotation_id,
+	                   hehsh.emp_type,
+	                   hehsh.status,
+	                   hehsh.rpt_hire_dt,
+	                   hehsh.hire_dt,
+	                   hehsh.rpt_hire_by,
+	                   hehsh.add_reason,
+	                   hehsh.hire_competitor,
+	                   hehsh.hire_remark,
+	                   hehsh.is_hire_call,
+	                   hehsh.actual_work_loc,
+	                   hehsh.file_cab_code,
+	                   hehsh.folder_code,
+	                   hehsh.position_id,
+	                   hehsh.add_perfect_dt,
+	                   hehsh.add_confirm_status,
+	                   hehsh.add_confirm_pro,
+	                   hehsh.add_remark,
+	                   hehsh.add_confirm_by,
+	                   hehsh.add_confirm_dt,
+	                   hehsh.alter_perfect_dt,
+	                   hehsh.alter_status,
+	                   hehsh.alter_remark,
+	                   hehsh.alter_confirm_pro,
+	                   hehsh.alter_confirm_by,
+	                   hehsh.alter_confirm_dt,
+	                   hehsh.sep_dt,
+	                   hehsh.rpt_sep_dt,
+	                   hehsh.reduce_reason,
+	                   hehsh.reduce_detail_reason,
+	                   hehsh.sep_perfect_dt,
+	                   hehsh.sep_confirm_his,
+	                   hehsh.rpt_sep_by,
+	                   hehsh.sep_reason,
+	                   hehsh.sep_remark,
+	                   hehsh.sep_process_status,
+	                   hehsh.sep_confirm_dt,
+	                   hehsh.sep_confirm_status,
+	                   hehsh.sep_confirm_pro,
+	                   hehsh.sep_confirm_by,
+	                   hehsh.is_sep_call,
+	                   hehsh.is_refund,
+	                   hehsh.is_need_sign,
+	                   hehsh.is_archive,
+	                   hehsh.prev_pointer,
+	                   hehsh.next_pointer,
+	                   hehsh.type1,
+	                   hehsh.type2,
+	                   hehsh.type3,
+	                   hehsh.type4,
+	                   hehsh.type5,
+	                   hehsh.batch_id,
+	                   hehsh.create_by,
+	                   hehsh.create_dt,
+	                   hehsh.update_by,
+	                   hehsh.update_dt,
+	                   hehsh.mimic_by,
+	                   hehsh.proxy_by
+	              from hs_emp_hire_sep_his hehsh
+	             where hehsh.emp_hire_sep_id = hehs.emp_hire_sep_id
+	               and is_deleted = 0)
+	     where hehs.emp_hire_sep_id = #{empHireSepId}
+	       and exists (select 'x'
+	              from hs_emp_hire_sep_his hehsha
+	             where hehsha.emp_hire_sep_id = hehs.emp_hire_sep_id
+	               and hehsha.type = #{type})
+  </update>
+  
+  <update id="deleteEmpHireSepHis" parameterType="java.lang.String">
+  		update hs_emp_hire_sep_his set is_deleted = 1,update_dt = sysdate where emp_hire_sep_id = #{empHireSepId}
+  </update>
+  
+  <sql id="transferCondition">
+  	
+ 		<if test="status != null ">and
+			hehs.status = #{status}
+  		</if>
+		<if test="custInternalNum != null ">and
+			hehs.cust_internal_num = #{custInternalNum}
+  		</if>
+		<if test="custCode != null ">and
+			bc.cust_code = #{custCode}
+  		</if>
+		<if test="custName != null ">and
+			 instr(bc.cust_name,#{custName}) &gt; 0 
+  		</if>
+  		<if test="employeeCode != null ">and
+			be.emp_code = #{employeeCode}
+  		</if>
+  		<if test="idCardNum != null ">and
+			be.idc18 = FNC_15TO18(#{idCardNum})
+  		</if>
+  		<if test="employeeName != null ">and
+			be.emp_name = #{employeeName}
+  		</if>
+  		<if test="assignerProviderId != null ">and
+			hs.assigner_provider_id = #{assignerProviderId}
+  		</if>
+  		<if test="assigneeProviderId != null ">and
+			hs.assignee_provider_id = #{assigneeProviderId}
+  		</if>
+  		<if test="assignerCsId != null ">and
+			hs.assigner_cs_id = #{assignerCsId}
+  		</if>
+  		<if test="assigneeCsId != null ">and
+			hs.assignee_cs_id = #{assigneeCsId}
+  		</if>
+		<if test="subcontractName != null ">and
+			hs.subcontract_name like '%${subcontractName}%'
+  		</if>
+	
+  </sql>
+  
+  <select id="queryEmpHireSepListForTransfer" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	  	<include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	  	select hehs.emp_hire_sep_id empHireSepId,
+		       to_char(hehs.hire_dt, 'yyyy-mm-dd') hireDt,
+		       to_char(hehs.rpt_hire_dt, 'yyyy-mm-dd hh24:mi:ss') rptHireDt,
+		       hehs.emp_type empType,
+		       decode(hehs.add_confirm_status,
+		              1,
+		              '增员未提交',
+		              20,
+		              '等待接单方确认',
+		              22,
+		              '接单方挂起',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '增员完成') addConfirmStatusName,
+		       decode(hehs.alter_status,
+		              1,
+		              '',
+		              20,
+		              '等待接单方确认',
+		              30,
+		              '等待派单方确认',
+		              40,
+		              '变更最终确认') alterStatusName,
+		       hehs.subcontract_id subcontractId,
+		       hs.subcontract_name subcontractName,
+		       hs.assigner_provider_id assignerProviderId,
+		       (SELECT sdi.department_name
+		          FROM sys_department_info sdi
+		         WHERE hs.assigner_provider_id = sdi.department_id(+)) assignerProvider,
+		       hs.assignee_provider_id assigneeProviderId,
+		       (SELECT sdi.department_name
+		          FROM sys_department_info sdi
+		         WHERE hs.assignee_provider_id = sdi.department_id(+)) assigneeProvider,
+		       hs.assigner_cs_id assignerCsId,
+		       (SELECT sui.real_name
+		          FROM sys_user_info sui
+		         WHERE hs.assigner_cs_id = sui.user_id(+)) assignerCs,
+		       hs.assignee_cs_id assigneeCsId,
+		       (SELECT sui.real_name
+		          FROM sys_user_info sui
+		         WHERE hs.assignee_cs_id = sui.user_id(+)) assigneeCs,
+		       be.emp_id empId,
+		       be.emp_code employeeCode,
+		       be.emp_name employeeName,
+		       be.id_card_type idCardType,
+		       be.id_card_num idCardNum,
+		       decode(be.emp_status, 1, '入职未生效', 2, '在职', 3, '离职') employeeStatus,
+		       bc.cust_id custId,
+		       bc.cust_code custCode,
+		       bc.cust_name custName,
+		       decode(bc.cust_type, 0, '直销', 1, '渠道') custType
+		  from hs_emp_hire_sep hehs,
+		       bd_customer     bc,
+		       bd_employee     be,
+		       hs_subcontract  hs
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hehs.sep_dt is null
+		   and hehs.add_confirm_status = 40
+		   and hehs.alter_status in (1, 40)
+		<include refid="transferCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+  <select id="queryEmpHireSepCountForTransfer" parameterType="com.ctg.hro2.query.emphiresep.emporder.EmployeeHireSepQuery" resultType="java.lang.Integer">
+	  	select count(*)
+		  from hs_emp_hire_sep hehs,
+		       bd_customer     bc,
+		       bd_employee     be,
+		       hs_subcontract  hs
+		 where hehs.cust_id = bc.cust_id
+		   and hehs.emp_id = be.emp_id
+		   and hehs.subcontract_id = hs.subcontract_id
+		   and hehs.is_deleted = 0
+		   and bc.is_deleted = 0
+		   and be.is_deleted = 0
+		   and hehs.sep_dt is null
+		   and hehs.add_confirm_status = 40
+		   and hehs.alter_status in (1,40)
+  		<include refid="transferCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.subcontractAuthConditionSql"/>
+  </select>
+  
+  <select id="checkTransferLockingDay" parameterType="java.util.Map" resultType="java.lang.Integer">
+  	
+  		select count(*)
+		  from ef_receivable_bill erb
+		 where erb.bill_ym &gt;= #{transEffectiveMonth}
+		   and erb.is_locked = 1
+		   and erb.receivable_templt_id in
+		       (SELECT distinct hef.e_bill_templt_id
+		          FROM HS_EMP_FEE hef, BD_PRODUCT bp
+		         WHERE hef.product_id = bp.product_id
+		           AND hef.emp_hire_sep_id = #{employeeHireSepId}
+		           and hef.charge_start_date &lt;=
+		               to_date(#{transEffectiveMonth} || '01', 'yyyy-mm-dd')
+		           and (hef.charge_end_date &gt;=
+		               to_date(#{transEffectiveMonth} || '01', 'yyyy-mm-dd') or
+		               hef.charge_end_date is null)
+		           AND hef.is_deleted = 0
+		           AND bp.category &lt; 3
+		           AND bp.is_one_time_pay = 0)
+		           
+  </select>
+  
+  <select id="checkIfExistEmpOrder" parameterType="java.util.Map" resultType="java.lang.Integer">
+  	select count(*)
+	  from hs_emp_hire_sep hs
+	 where hs.is_deleted = 0
+	   and hs.subcontract_id = #{subcontractId}
+	   and hs.emp_id = #{empId}
+	   and hs.sep_dt is null
+  </select>
+  
+  <select id="checkIfExistSsPfApplication" parameterType="java.lang.String" resultType="java.lang.Integer">
+  			
+  		select count(*)
+		  from SS_ORDER_SS_GROUP_SVC sosgs
+		 where sosgs.emp_hire_sep_id = #{value}
+		   and sosgs.is_deleted = 0
+		   and STATUS &lt;= 0
+		   
+  </select>
+  
+  <select id="checkIsIndependent" parameterType="java.lang.String" resultType="java.lang.Integer">
+  		select count(bem.is_independent)
+		  from SS_PROCESS_INFO spi, bd_emp_maintain bem
+		 where spi.WELFARE_PROCESSOR = bem.Employer_Maintain_Id
+		   and spi.emp_hire_sep_id = #{value}
+		   and spi.is_deleted = 0
+		   and bem.is_deleted = 0
+		   and bem.is_independent = 1
+  </select>
+  
+  <select id="getConfirmProcess" parameterType="java.lang.String" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+	   	select t.add_confirm_pro   addConfirmPro,
+		       t.alter_confirm_pro alterConfirmPro,
+		       t.sep_confirm_pro   sepConfirmPro
+		  from hs_emp_hire_sep t
+		 where t.emp_hire_sep_id = #{value}
+  </select>
+  
+  <sql id="batchAlterCondition">
+  	
+		<if test="batchAlterName != null ">and
+			hbao.batch_alter_name like  '%${batchAlterName}%'
+  		</if>
+		<if test="custId != null ">and
+			bc.cust_id = #{custId}
+  		</if>
+		<if test="createDt != null ">and
+			hbao.create_dt &gt;= to_date(#{createDt},'yyyy-mm-dd')
+	    </if>
+	    <if test="createDtTo != null ">and
+			
+			hbao.create_dt &lt; to_date(#{createDtTo},'yyyy-mm-dd') + 1
+			
+    	</if>
+	
+  </sql>
+  
+   <!-- 根据条件查询批量变更的结果  -->	
+    <select id="queryBatchAlterEmpOrderList" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder">
+	    <include refid="com.ctg.hro.dao.common.CommonDao.prefix"/>
+	   	select hbao.batch_alter_id AS batchAlterId,
+	           hbao.batch_alter_name AS batchAlterName,
+	           bc.cust_id AS custId,
+	           bc.cust_code AS custCode,
+	           bc.cust_name AS custName,
+	           hbao.old_bill_templt_id AS oldBillTempltId,
+	           (select ert.receivable_templt_name from ef_receivable_template ert where ert.receivable_templt_id = hbao.old_bill_templt_id )AS oldBillTempltName, 
+	           hbao.old_fee_templt_id AS oldFeeTempltId,
+	           (select erf.frequency_name from ef_receivable_frequency erf where erf.frequency_id = hbao.old_fee_templt_id ) AS oldFeeTempltName,
+	           hbao.new_bill_templt_id AS newBillTempltId,
+	           (select ert.receivable_templt_name from ef_receivable_template ert where ert.receivable_templt_id = hbao.new_bill_templt_id )AS newBillTempltName,
+	           hbao.new_fee_templt_id AS newFeeTempltId,
+	           (select erf.frequency_name from ef_receivable_frequency erf where erf.frequency_id = hbao.new_fee_templt_id ) AS newFeeTempltName,
+	           hbao.bill_start_month AS billStartMonth,
+	           hbao.fee_start_month AS feeStartMonth,
+	           hbao.status AS status,
+	           hbao.remark AS remark,
+	           hbao.is_deleted AS isDeleted,
+	           (select sui.real_name from sys_user_info sui where sui.user_id = hbao.create_by)AS createBy,
+	           to_char(hbao.create_dt,'yyyy-mm-dd hh24:mi:ss') AS createDt
+	        from hs_batch_alter_order hbao,bd_customer bc
+	        where hbao.cust_id = bc.cust_id
+		<include refid="batchAlterCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.customerAuthConditionSql"/>
+		order by hbao.batch_alter_id desc
+		<include refid="com.ctg.hro.dao.common.CommonDao.suffix"/>
+  </select>
+  
+   <select id="queryBatchAlterEmpOrderListCount" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="java.lang.Integer">
+   		select count(1)
+	        from hs_batch_alter_order hbao,bd_customer bc
+	        where hbao.cust_id = bc.cust_id
+    	<include refid="batchAlterCondition"/>
+		<include refid="com.ctg.hro.dao.common.CommonDao.customerAuthConditionSql"/>
+   </select>
+  
+  <!-- 根据map里的条件查询的结果  -->	
+	<select id="getEmpHireSepListInBatchAlterOrder" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+			select t.emp_id AS empId,
+			       t.emp_code AS employeeCode,
+			       t.emp_name AS employeeName,
+			       (select bbd.base_data_name
+				          from bd_base_data bbd
+				         where bbd.base_data_code = t.id_card_type
+				           and bbd.type = 45
+				           and bbd.is_deleted = 0) idCardType,
+			       t.id_card_num AS idCardNum,
+			       t.subcontract_id AS subcontractId,
+			       t.subcontract_code AS subcontractCode,
+			       t.subcontract_name AS subcontractName,
+			       t.status AS status,
+			       t.emp_hire_sep_id AS empHireSepId
+			  from (select distinct be.emp_id,
+			                        be.emp_code,
+			                        be.emp_name,
+			                        be.id_card_type,
+			                        be.id_card_num,
+			                        hehs.emp_hire_sep_id,
+			                        hs.subcontract_id,
+			                        hs.subcontract_code,
+			                        hs.subcontract_name,
+			                        hehs.status
+			          FROM hs_emp_hire_sep hehs,
+			               hs_subcontract  hs,
+			               bd_employee     be,
+			               hs_emp_fee      hef,
+			               bd_product      bp,
+			               sl_contract     sc
+			         where hehs.subcontract_id = hs.subcontract_id
+			           AND be.emp_id = hehs.emp_id
+			           AND hef.emp_hire_sep_id = hehs.emp_hire_sep_id
+			           AND hef.product_id = bp.product_id
+			           and hs.contract_id = sc.contract_id
+			           AND hehs.is_deleted = 0
+			           AND hef.is_deleted = 0
+			           AND hehs.alter_status in (1,40)
+                 	   AND hehs.sep_confirm_status in (1,40)
+                 	   AND (hehs.add_confirm_status = 40 or hehs.comm_insur_status = 40)
+			           <if test="custId != null ">and
+			           		hehs.cust_id = #{custId}
+			           </if>
+			           <if test="subContractIds != null ">and
+			           		hs.subcontract_id in (${subContractIds})
+			           </if>
+			           <if test="subContractIds == null or subContractIds == ''">and
+			           		sc.sign_branch_title = #{signBranchTitleId}
+			           </if>
+			           <if test="oldBillTempltId != null ">and
+			           		hef.e_bill_templt_id = #{oldBillTempltId}
+			           </if>
+			           <if test="oldFeeTempltId != null ">and
+			           		hef.e_fee_templt_id = #{oldFeeTempltId}
+			           </if>
+			           <if test="productCategoryIds != null ">and
+			           		bp.category in (${productCategoryIds})
+			           </if>
+			           <if test="productIds != null ">and
+			           		bp.product_id in (${productIds})
+			           </if>
+			           <if test="signBranchTitleId != null ">and
+			           		sc.sign_branch_title = #{signBranchTitleId}
+			           </if>
+			           <if test="feeStartMonth != null ">and  
+			            
+				           (hef.charge_start_date &lt;= hef.charge_end_date or
+				               hef.charge_end_date is null)
+				           AND (hef.charge_end_date &gt;= to_date(#{feeStartMonth}, 'yyyy-mm') or  hef.charge_end_date is null)    
+			              
+			           </if> 
+			               ) t
+ 	</select>
+
+	<select id="getBatchAlterOrderSeq" resultType="string">
+		select seq_hs_batch_alter_order.nextval from dual
+	</select>
+
+	<select id="getEditLogSeq" resultType="string">
+		select SEQ_HS_EMP_HIRE_SEP_EDIT_LOG.nextval from dual
+	</select>
+ 	
+ 	  <insert id="insertBatchAlterEmpOrder" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Tue Jan 31 16:35:53 CST 2012.
+    -->
+    insert into hs_batch_alter_order
+    <trim prefix="(" prefixOverrides=",">IS_DELETED,CREATE_DT
+      <if test="batchAlterId != null">,
+        BATCH_ALTER_ID
+      </if>
+      <if test="custId != null">,
+        CUST_ID
+      </if>
+      <if test="batchAlterName != null">,
+        BATCH_ALTER_NAME
+      </if>
+      <if test="oldBillTempltId != null">,
+        OLD_BILL_TEMPLT_ID
+      </if>
+      <if test="oldFeeTempltId != null">,
+        OLD_FEE_TEMPLT_ID
+      </if>
+      <if test="newBillTempltId != null">,
+        NEW_BILL_TEMPLT_ID
+      </if>
+      <if test="newFeeTempltId != null">,
+        NEW_FEE_TEMPLT_ID
+      </if>
+      <if test="billStartMonth != null">,
+        BILL_START_MONTH
+      </if>
+      <if test="feeStartMonth != null">,
+        FEE_START_MONTH
+      </if>
+      <if test="status != null">,
+        STATUS
+      </if>
+      <if test="remark != null">,
+        REMARK
+      </if>
+      <if test="createBy != null">,
+        CREATE_BY
+      </if>
+      <if test="updateBy != null">,
+        UPDATE_BY
+      </if>
+      <if test="updateDt != null">,
+        UPDATE_DT
+      </if>
+      <if test="mimicBy != null">,
+        MIMIC_BY
+      </if>
+      <if test="proxyBy != null">,
+        PROXY_BY
+      </if>
+      )
+    </trim>
+    values
+    <trim prefix="(" prefixOverrides=",">0,sysdate
+      <if test="batchAlterId != null">,
+        #{batchAlterId,jdbcType=DECIMAL}
+      </if>
+      <if test="custId != null">,
+        #{custId,jdbcType=DECIMAL}
+      </if>
+      <if test="batchAlterName != null">,
+        #{batchAlterName,jdbcType=VARCHAR}
+      </if>
+      <if test="oldBillTempltId != null">,
+        #{oldBillTempltId,jdbcType=DECIMAL}
+      </if>
+      <if test="oldFeeTempltId != null">,
+        #{oldFeeTempltId,jdbcType=DECIMAL}
+      </if>
+      <if test="newBillTempltId != null">,
+        #{newBillTempltId,jdbcType=DECIMAL}
+      </if>
+      <if test="newFeeTempltId != null">,
+        #{newFeeTempltId,jdbcType=DECIMAL}
+      </if>
+      <if test="billStartMonth != null">,
+        #{billStartMonth,jdbcType=VARCHAR}
+      </if>
+      <if test="feeStartMonth != null">,
+        #{feeStartMonth,jdbcType=VARCHAR}
+      </if>
+      <if test="status != null">,
+        #{status,jdbcType=DECIMAL}
+      </if>
+      <if test="remark != null">,
+         #{remark,jdbcType=VARCHAR}
+      </if>
+      <if test="createBy != null">,
+        #{createBy,jdbcType=DECIMAL}
+      </if>
+      <if test="updateBy != null">,
+        #{updateBy,jdbcType=DECIMAL}
+      </if>
+      <if test="updateDt != null">,
+        #{updateDt,jdbcType=DATE}
+      </if>
+      <if test="mimicBy != null">,
+        #{mimicBy,jdbcType=DECIMAL}
+      </if>
+      <if test="proxyBy != null">,
+        #{proxyBy,jdbcType=DECIMAL}
+      </if>
+      )
+    </trim>
+  </insert>
+  
+  <insert id="insertBatchAlterEmpOrderItem" parameterType="java.util.Map">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Tue Jan 31 16:35:53 CST 2012.
+    -->
+    insert into hs_batch_alter_emp
+			  (alter_emp_item_id,
+			   emp_hire_sep_id,
+			   emp_id,
+			   emp_code,
+			   emp_name,
+			   id_card_type,
+			   id_card_num,
+			   subcontract_code,
+			   subcontract_name,
+			   batch_alter_id,
+			   is_deleted,
+			   create_dt)
+			  select seq_hs_batch_alter_emp.nextval,
+			         hehs.emp_hire_sep_id,
+			         be.emp_id,
+			         be.emp_code,
+			         be.emp_name,
+			         be.id_card_type,
+			         be.id_card_num,
+			         hs.subcontract_id,
+			         hs.subcontract_name,
+			         #{batchAlterId},
+			         0,
+			         sysdate
+			    from hs_emp_hire_sep hehs, bd_employee be, hs_subcontract hs
+			   where hehs.subcontract_id = hs.subcontract_id
+			     AND hehs.emp_id = be.emp_id
+			     AND hehs.emp_hire_sep_id in (${empHireSepIds})
+  </insert>
+  
+    <insert id="insertBatchAlterSubcontractItem" parameterType="java.util.Map">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Tue Jan 31 16:35:53 CST 2012.
+    -->
+    insert into hs_batch_alter_subcontract
+			  (alter_subcontract_item_id,
+			   subcontract_id,
+			   subcontract_name,
+			   assigner_provider_id,
+			   assignee_provider_id,
+			   batch_alter_id,
+			   is_deleted,
+			   create_dt)
+			  select seq_hs_batch_alter_subcontract.nextval,
+			         hs.subcontract_id,
+			         hs.subcontract_name,
+			         hs.assigner_provider_id,
+			         hs.assignee_provider_id,
+			         #{batchAlterId},
+			         0,
+			         sysdate
+			    from hs_subcontract hs
+			   where hs.subcontract_id in (${subContractIds})
+  </insert>
+  
+  <insert id="insertBatchAlterProductItem" parameterType="java.util.Map">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Tue Jan 31 16:35:53 CST 2012.
+    -->
+    insert into hs_batch_alter_product
+			  (alter_product_item_id,
+			   product_id,
+			   product_name,
+			   product_category,
+			   batch_alter_id,
+			   is_deleted,
+			   create_dt)
+			  select seq_hs_batch_alter_product.nextval,
+			         bp.product_id,
+			         bp.product_name,
+			         bp.category,
+			         #{batchAlterId},
+			         0,
+			         sysdate
+			    from bd_product bp
+			   where bp.product_id in (${productIds})
+  </insert>
+  
+   <insert id="insertBatchAlterProductCategoryItem" parameterType="java.util.Map">
+    <!--
+      WARNING - This element is automatically generated by Apache iBATIS ibator, do not modify.
+      This element was generated on Tue Jan 31 16:35:53 CST 2012.
+    -->
+    insert into hs_batch_alter_prod_category
+			  (alter_category_item_id,
+			   product_category_id,
+			   product_category,
+			   batch_alter_id,
+			   is_deleted,
+			   create_dt)
+			  select seq_hs_batch_alter_prod_cate.nextval,
+			         bbd.base_data_code,
+			         bbd.base_data_name,
+			         #{batchAlterId},
+			         0,
+			         sysdate
+			    from bd_base_data bbd
+			   where bbd.base_data_code in (${productCategoryIds})
+			     and bbd.type = 98
+  </insert>
+  
+  <!-- 根据批量变更id得到变更明细的查询结果  -->	
+	<select id="queryEmpHireSepListByAlterId" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrderItem">
+			select alter_emp_item_id AS alterEmpItemId,
+			       emp_hire_sep_id AS empHireSepId,
+			       emp_id AS empId,
+			       emp_code AS empCode,
+			       emp_name AS empName,
+			       (select bbd.base_data_name
+			          from bd_base_data bbd
+			         where bbd.base_data_code = id_card_type
+			           and bbd.type = 45
+			           and bbd.is_deleted = 0) idCardType,
+			       id_card_num AS idCardNum,
+			       subcontract_code AS subcontractCode,
+			       subcontract_name AS subcontractName,
+			       batch_alter_id AS batchAlterId,
+			       status AS status,
+			       remark AS remark
+			  from hs_batch_alter_emp
+			 where batch_alter_id = #{batchAlterId}
+ 	</select>
+ 	<!-- 根据批量变更id得到小合同的查询结果  -->	
+ 	<select id="queryQuerySubContractListByAlterId" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterSubcontractItem">
+			select alter_subcontract_item_id AS alterSubcontractItemId,
+			       subcontract_id AS subcontractId,
+			       subcontract_name AS subcontractName,
+			       assigner_provider_id AS assignerProviderId,
+			       (SELECT sdi.department_name
+			          FROM sys_department_info sdi
+			         WHERE assigner_provider_id = sdi.department_id(+)) AS assignerProviderId,
+			       (SELECT sdi.department_name
+			          FROM sys_department_info sdi
+			         WHERE assignee_provider_id = sdi.department_id(+)) AS assigneeProviderId,
+			       batch_alter_id AS batchAlterId
+			  from hs_batch_alter_subcontract
+			 where batch_alter_id = #{batchAlterId}
+ 	</select>
+ 	
+ 	<!-- 根据批量变更id得到产品大类的查询结果  -->	
+ 	<select id="queryProductCategoryListByAlterId" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterProductCategoryItem">
+			select alter_category_item_id AS alterCategoryItemId,
+			       product_category_id    AS productCategoryId,
+			       product_category       AS productCategory,
+			       batch_alter_id         AS batchAlterId
+			  from hs_batch_alter_prod_category
+			 where batch_alter_id = #{batchAlterId}
+ 	</select>
+ 	
+ 	<!-- 根据批量变更id得到产品的查询结果  -->	
+ 	<select id="queryProductListByAlterId" parameterType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterEmpOrder" resultType="com.ctg.hro.entity.emphiresep.emporder.batchalter.BatchAlterProductItem">
+			select alter_product_item_id AS alterProductItemId,
+			       product_id AS productId,
+			       product_name AS productName,
+			       (select bbd.base_data_name
+			          from bd_base_data bbd
+			         where bbd.base_data_code = product_category
+			           and bbd.type = 98) AS productCategory,
+			       batch_alter_id AS batchAlterId
+			  from hs_batch_alter_product
+			 where batch_alter_id = #{batchAlterId}
+ 	</select>
+ 	
+ 	<select id="getEmpFeeMonthTitleList" parameterType="HashMap" resultType="com.ctg.hro.entity.emphiresep.emporder.EmpFeeMonth">
+		SELECT distinct 
+        pb.product_name productName,
+        pb.product_id productId,
+        pb.category
+		FROM hs_emp_hire_sep     ehs,
+		hs_emp_fee          	 ef,
+		hs_emp_fee_month    	 efm,
+		bd_employee				 emp,
+		hs_subcontract      	 subcontract,
+		sl_quotation        	 q,
+		bd_product           	 pb,
+		ef_receivable_template  ert,
+        ef_receivable_frequency erf
+		WHERE ehs.emp_hire_sep_id = efm.emp_hire_sep_id
+		AND ehs.emp_id = emp.emp_id
+		AND ehs.emp_hire_sep_id = ef.emp_hire_sep_id
+		AND ehs.subcontract_id = subcontract.subcontract_id
+		AND ef.quotation_id=q.quotation_id(+)
+		AND efm.e_bill_templt_id = ert.receivable_templt_id
+	    AND efm.e_fee_templt_id = erf.FREQUENCY_ID(+)
+	    AND erf.is_deleted = 0
+		AND ehs.is_deleted = 0
+		AND efm.is_valid = 1
+		AND efm.is_deleted = 0
+		AND efm.product_id=pb.product_id
+		
+			<if test="custId != null ">and
+		   		ehs.cust_id=#{custId}
+		   </if>
+		   <if test="receivableTempltId != null ">and
+		   		ert.receivable_templt_id=#{receivableTempltId}
+		   </if>
+		   <if test="empCode != null ">and
+		   		emp.EMP_CODE=#{empCode}
+		   </if>
+		   <if test="empName != null ">and
+		   		emp.EMP_NAME = #{empName}
+		   </if>
+		   <if test="idcType != null ">and
+		   		emp.ID_CARD_TYPE=#{idcType}
+		   </if>
+		   <if test="idcNum != null ">and
+		   		emp.ID_CARD_NUM=#{idcNum}
+		   </if>
+		   <if test="subcontractId != null ">and
+		   		ehs.SUBCONTRACT_ID=#{subcontractId}
+		   </if>
+		   <if test="assignerProviderId != null ">and
+		   		subcontract.assigner_provider_id=#{assignerProviderId}
+		   </if>
+		   <if test="assigneeProviderId != null ">and
+		   		subcontract.assignee_provider_id=#{assigneeProviderId}
+		   </if>
+		   <if test="Addconfirmstatus != null ">and
+		   		ehs.ADD_CONFIRM_STATUS=#{Addconfirmstatus}
+		   </if>
+		   <if test="Sepconfirmstatus != null ">and
+		   		ehs.SEP_CONFIRM_STATUS=#{Sepconfirmstatus}
+		   </if>
+		   <if test="AlterStatus != null ">and
+		   		ehs.ALTER_STATUS=#{AlterStatus}
+		   </if>
+		   <if test="addconfirmstatusFW != null ">and
+		   		ehs.add_confirm_status in (${addconfirmstatusFW})
+		   </if>
+		   <if test="sepconfirmstatusFW != null ">and
+		   		ehs.SEP_CONFIRM_STATUS in (${sepconfirmstatusFW})
+		   </if>
+		   <if test="AlterstatusFW != null ">and
+			    ehs.ALTER_STATUS in (${AlterstatusFW})
+		   </if>
+		   <if test="serviceMonthStart != null ">and 
+			
+				efm.SERVICE_MONTH &gt;=#{serviceMonthStart}
+			
+			</if>
+			<if test="serviceMonthEnd != null ">and 
+			
+				efm.SERVICE_MONTH &lt;=#{serviceMonthEnd}
+			
+			</if>
+			<if test="billMonthStart != null ">and
+			 	
+			 		efm.BILL_MONTH &gt;=#{billMonthStart}
+			 	
+			</if>
+			<if test="billMonthEnd != null ">and
+			 	
+			 		efm.BILL_MONTH &lt;=#{billMonthEnd}
+			 	
+			</if>
+   		
+		order by pb.product_id
+ 	</select>
+ 	
+ 	<sql id="getEmpFeeMonthList">
+	   SELECT efm.emp_id || ef.EMP_HIRE_SEP_ID || efm.service_month as empfeemonthNo,
+       ef.product_id productId,
+       ehs.cust_id cusId,
+       row_number() over(PARTITION BY efm.emp_id || ef.EMP_HIRE_SEP_ID || efm.service_month,ef.product_id ORDER BY ef.product_id)  ifrow,
+       dense_rank() over (order by ef.emp_id || ef.emp_hire_sep_id || efm.service_month) rankNum,
+       efm.emp_id empId,
+       emp.emp_name empName,
+       emp.emp_code empCode,
+       (select bbd.base_data_name from bd_base_data bbd where bbd.base_data_code = emp.id_card_type and bbd.type = 45) AS idcardtype,
+       emp.id_card_num idcnum,
+       cus.cust_name cusName,
+       cus.cust_code cusCode,
+       subcontract.subcontract_code subcontractCode,
+       subcontract.subcontract_name subcontractName,
+       q.quotation_name				quotationName,
+       dep1.department_name         assignerProvider,
+       user1.real_name              assignerCsid,
+       dep2.department_name         assigneeProvider,
+       user2.real_name              assigneeCsid,
+       case ehs.status when 1 then '入职未生效' when 2 then '在职' when 3 then '离职' end status,
+       case ehs.add_confirm_status when 1 then '增员未提交' when 20 then '等待接单方确认' when 22 then '接单方挂起'
+       when 30 then '等待派单方确认' when 40 then '增员完成' end addConfirmStatus,
+       case ehs.sep_confirm_status when 1 then '离职未提交' when 20 then '等待接单方确认' when 23 then '接单方驳回'
+       when 30 then '等待派单方确认' when 40 then '离职完成' end sepConfirmStatus,
+       case ehs.alter_status when 1 then '变更未提交' when 20 then '等待接单方确认' when 30 then '等待派单方确认' 
+       when 40 then '变更最终确认' end alterStatus,
+       ef.ss_group_id groupId,
+       ssgroup.insurance_name groupName,
+       efm.service_month serviceMonth,
+       efm.bill_month billMonth,
+       efm.e_base eBase,
+       efm.e_ratio e_Ratio,
+       efm.e_amt e_Amt,
+       efm.p_base p_Base,
+       efm.p_ratio p_Ratio,
+       efm.p_amt p_Amt,
+       efm.amount amount,
+       ert.RECEIVABLE_TEMPLT_NAME eBillTemplt,
+       erf.FREQUENCY_NAME eFeeTemplt,
+       pb.category  category,
+	   ehs.dec_salary decSalary --gang.wen
+  FROM hs_emp_hire_sep     ehs,
+       bd_employee         emp,
+       bd_customer         cus,
+       hs_subcontract      subcontract,
+       sl_quotation        q,
+       sys_department_info dep1,
+       sys_user_info       user1,
+       sys_department_info dep2,
+       sys_user_info       user2,
+       hs_emp_fee          ef,
+       hs_emp_fee_month    efm,
+       ss_group            ssgroup,
+       bd_product          pb,
+       EF_RECEIVABLE_TEMPLATE ert,
+       ef_receivable_frequency erf
+ WHERE ehs.emp_id = emp.emp_id
+   AND ehs.cust_id = cus.cust_id
+   AND subcontract.assigner_provider_id = dep1.department_id
+   AND subcontract.assigner_cs_id = user1.user_id(+)
+   AND subcontract.assignee_provider_id = dep2.department_id
+   AND subcontract.assignee_cs_id = user2.user_id
+   AND ehs.subcontract_id = subcontract.subcontract_id
+   AND ef.quotation_id=q.quotation_id(+)
+   AND ehs.emp_hire_sep_id = ef.emp_hire_sep_id
+   AND ef.emp_fee_id = efm.emp_fee_id
+   AND efm.ss_group_id=ssgroup.ss_group_id(+)
+   AND efm.product_id=pb.product_id
+   AND efm.E_BILL_TEMPLT_ID=ert.RECEIVABLE_TEMPLT_ID
+   AND efm.E_FEE_TEMPLT_ID=erf.FREQUENCY_ID(+)
+   AND ehs.is_deleted = 0
+   AND ef.is_deleted = 0
+   AND subcontract.is_deleted = 0
+   AND efm.is_valid = 1
+   AND efm.is_deleted = 0
+   
+   		<if test="custId != null ">and
+		   		ehs.cust_id=#{custId}
+		   </if>
+		   <if test="receivableTempltId != null ">and
+		   		ert.receivable_templt_id=#{receivableTempltId}
+		   </if>
+	   <if test="empCode != null ">and
+	   		emp.EMP_CODE=#{empCode}
+	   </if>
+	   <if test="empName != null ">and
+	   		emp.EMP_NAME = #{empName}
+	   </if>
+	   <if test="idcType != null ">and
+	   		emp.ID_CARD_TYPE=#{idcType}
+	   </if>
+	   <if test="idcNum != null ">and
+	   		emp.ID_CARD_NUM=#{idcNum}
+	   </if>
+	   <if test="subcontractId != null ">and
+	   		ehs.SUBCONTRACT_ID=#{subcontractId}
+	   </if>
+	   <if test="assignerProviderId != null ">and
+	   		subcontract.assigner_provider_id=#{assignerProviderId}
+	   </if>
+	   <if test="assigneeProviderId != null ">and
+	   		subcontract.assignee_provider_id=#{assigneeProviderId}
+	   </if>
+	   <if test="assignerCsId != null ">and
+	   		user1.user_id=#{assignerCsId}
+	   </if>
+	   <if test="assigneeCsId != null ">and
+	   		user2.user_id=#{assigneeCsId}
+	   </if>
+	   <if test="Addconfirmstatus != null ">and
+	   		ehs.ADD_CONFIRM_STATUS=#{Addconfirmstatus}
+	   </if>
+	   <if test="Sepconfirmstatus != null ">and
+	   		ehs.SEP_CONFIRM_STATUS=#{Sepconfirmstatus}
+	   </if>
+	   <if test="addconfirmstatusFW != null ">and
+	   		ehs.add_confirm_status in (${addconfirmstatusFW})
+	   </if>
+	   <if test="sepconfirmstatusFW != null ">and
+	   		ehs.SEP_CONFIRM_STATUS in (${sepconfirmstatusFW})
+	   </if>
+	   <if test="AlterStatus != null ">and
+		    ehs.ALTER_STATUS=#{AlterStatus}
+	   </if>
+	   <if test="AlterstatusFW != null ">and
+		    ehs.ALTER_STATUS in (${AlterstatusFW})
+	   </if>
+	    <if test="serviceMonthStart != null ">and 
+			
+				efm.SERVICE_MONTH &gt;=#{serviceMonthStart}
+			
+			</if>
+			
+			<if test="serviceMonthEnd != null ">and 
+			
+				efm.SERVICE_MONTH &lt;=#{serviceMonthEnd}
+			
+			</if>
+			<if test="billMonthStart != null ">and
+			 	
+			 		efm.BILL_MONTH &gt;=#{billMonthStart}
+			 	
+			</if>
+			<if test="billMonthEnd != null ">and
+			 	
+			 		efm.BILL_MONTH &lt;=#{billMonthEnd}
+			 	
+			</if>
+   
+   order by efm.emp_id || ef.EMP_HIRE_SEP_ID || efm.service_month,ifrow,ef.product_id
+	</sql>
+	
+   <update id="updateEmpOrderBaseInfo" parameterType="com.ctg.hro.entity.emphiresep.emporder.EmployeeHireSep">
+    update HS_EMP_HIRE_SEP set UPDATE_DT = sysdate
+      <if test="custInternalNum != null">,
+        CUST_INTERNAL_NUM = #{custInternalNum,jdbcType=DECIMAL}
+      </if>
+	   <if test="decSalary != null">,
+		   DEC_SALARY = #{decSalary,jdbcType=DECIMAL}
+	   </if>
+      <if test="hireDt != null">,
+        HIRE_DT = to_date(#{hireDt},'yyyy-mm-dd')
+      </if>
+      <if test="sepDt != null">,
+        SEP_DT = to_date(#{sepDt},'yyyy-mm-dd')
+      </if>
+      <if test="type1 != null">,
+        TYPE1 = #{type1,jdbcType=VARCHAR}
+      </if>
+      <if test="type2 != null">,
+        TYPE2 = #{type2,jdbcType=VARCHAR}
+      </if>
+      <if test="type3 != null">,
+        TYPE3 = #{type3,jdbcType=VARCHAR}
+      </if>
+      <if test="type4 != null">,
+        TYPE4 = #{type4,jdbcType=VARCHAR}
+      </if>
+      <if test="type5 != null">,
+        TYPE5 = #{type5,jdbcType=VARCHAR}
+      </if>
+      <if test="sepReason != null">,
+        SEP_REASON = #{sepReason,jdbcType=VARCHAR}
+      </if>
+      <if test="sepRemark != null">,
+        SEP_REMARK = '${sepRemark}'
+      </if>
+      <if test="sepConfirmPro != null">,
+        SEP_CONFIRM_PRO = '${sepConfirmPro}'
+      </if>
+      <if test="updateBy != null">,
+        UPDATE_BY = #{updateBy,jdbcType=DECIMAL}
+      </if>
+      <if test="isArchive != null">,
+        IS_ARCHIVE = '${isArchive}'
+      </if>
+      <if test="actualWorkLoc != null">,
+        ACTUAL_WORK_LOC = '${actualWorkLoc}'
+      </if>
+      <if test="ssParticipateLocation != null">,
+        SS_PARTICIPATE_LOCATION = '${ssParticipateLocation}'
+      </if>
+      <if test="laborRelationUnit != null">,
+        LABOR_RELATION_UNIT = '${laborRelationUnit}'
+      </if>
+      <if test="isThereSsCard != null">,
+        IS_THERE_SS_CARD = '${isThereSsCard}'
+      </if>
+      <if test="isThereACoordinateHealth != null">,
+        IS_THERE_A_COORDINATE_HEALTH = '${isThereACoordinateHealth}'
+      </if>
+      <if test="hireRemark != null">,
+        HIRE_REMARK = '${hireRemark}'
+      </if>
+    where EMP_HIRE_SEP_ID = #{empHireSepId,jdbcType=DECIMAL}
+  </update>
+  
+     <insert id="insertEmpOrderEditLog" parameterType="HashMap">
+      insert into HS_EMP_HIRE_SEP_EDIT_LOG (CREATE_DT
+      <if test="editLogId != null">,
+        EDIT_LOG_ID
+      </if>
+      <if test="empHireSepId != null">,
+        EMP_HIRE_SEP_ID
+      </if>
+      <if test="custInternalNum != null">,
+        CUST_INTERNAL_NUM
+      </if>
+      <if test="hireDt != null">,
+        HIRE_DT
+      </if>
+      <if test="sepDt != null">,
+        SEP_DT
+      </if>
+      <if test="type1 != null">,
+        TYPE1
+      </if>
+      <if test="type2 != null">,
+        TYPE2
+      </if>
+      <if test="type3 != null">,
+        TYPE3
+      </if>
+      <if test="type4 != null">,
+        TYPE4
+      </if>
+      <if test="type5 != null">,
+        TYPE5
+      </if>
+      <if test="createBy != null">,
+        CREATE_BY
+      </if>
+      <if test="mimicBy != null">,
+        MIMIC_BY
+      </if>
+      <if test="proxyBy != null">,
+        PROXY_BY
+      </if>
+      <if test="isArchive != null">,
+        IS_ARCHIVE
+      </if>
+      )
+    values (sysdate
+      <if test="editLogId != null">,
+        #{editLogId,jdbcType=DECIMAL}
+      </if>	
+      <if test="empHireSepId != null">,
+         #{empHireSepId,jdbcType=DECIMAL}
+      </if>
+      <if test="custInternalNum != null">,
+        #{custInternalNum,jdbcType=DECIMAL}
+      </if>
+      <if test="hireDt != null">,
+        to_date(#{hireDt},'yyyy-mm-dd')
+      </if>
+      <if test="sepDt != null">,
+        to_date(#{sepDt},'yyyy-mm-dd')
+      </if>
+      <if test="type1 != null">,
+        #{type1,jdbcType=VARCHAR}
+      </if>
+      <if test="type2 != null">,
+        #{type2,jdbcType=VARCHAR}
+      </if>
+      <if test="type3 != null">,
+        #{type3,jdbcType=VARCHAR}
+      </if>
+      <if test="type4 != null">,
+        #{type4,jdbcType=VARCHAR}
+      </if>
+      <if test="type5 != null">,
+        #{type5,jdbcType=VARCHAR}
+      </if>
+      <if test="createBy != null">,
+        #{createBy,jdbcType=DECIMAL}
+      </if>
+      <if test="mimicBy != null">,
+        #{mimicBy,jdbcType=DECIMAL}
+      </if>
+      <if test="proxyBy != null">,
+        #{proxyBy,jdbcType=DECIMAL}
+      </if>
+      <if test="isArchive != null">,
+        #{isArchive}
+      </if>
+      )
+  </insert>
+  
+  <!-- 查询符合条件的雇员费用段记录总数 一个人一条上下岗算一条 -->
+	<select id="getEmpFeeMonthCount" parameterType="java.util.HashMap" resultType="Integer">
+		select nvl(max(rankNum),0) from (
+			<include refid="getEmpFeeMonthList"/>
+		)
+	</select>
+	
+	<!-- 分页查询雇员费用段记录数据一个人一条上下岗算一条 -->
+	<select id="getEmpFeeMonthPage" parameterType="java.util.HashMap" resultType="com.ctg.hro.entity.emphiresep.emporder.EmpFeeMonth">
+		select * from (
+			<include refid="getEmpFeeMonthList"/>
+		)
+		 WHERE rankNum&lt;=(#{startIndex} + #{endIndex}) AND rankNum&gt;#{startIndex} 
+	</select>
+  
+   <parameterMap id="tempMap" type="java.util.HashMap">
+		<parameter property="batchId" jdbcType="INTEGER" javaType="java.lang.Integer" mode="IN"/>
+		<parameter property="prcTag" jdbcType="INTEGER" javaType="String" mode="OUT"/>
+	</parameterMap>
+  <update id="prcValidateImpInternalType" parameterMap="tempMap" statementType="CALLABLE">
+		{call PRC_IMP_INTERNAL_TYPE (?,?)}
+  </update>
+  
+	<select id="getEbmTransactStr" parameterType="String" resultType="String">
+		select wm_concat(distinct bd.base_data_name || '办理')
+		  from ebm_transact ebm, ebm_business_type bt, bd_base_data bd
+		 where ebm.bus_type_id = bt.bus_type_id
+		   and bt.category_id = bd.base_data_code
+		   and bd.type = 719
+		   and ebm.is_deleted = 0
+		   and ebm.BUSINESS_STATUS = 1
+		   and bd.is_valid = 1
+		   and bd.is_deleted = 0
+		   
+		   and bd.base_data_code &lt;&gt; 5
+		   
+		   and ebm.emp_hire_sep_id = #{value}
+	</select>
+  
+  <select id="getEmpAddCount" parameterType="String" resultType="Integer">
+  	select count(1)
+	  from hs_emp_hire_sep ehs
+	 where ehs.is_deleted = 0
+	   and ehs.emp_add_id = #{value}
+  </select>
+
+	<select id="getProviderType" parameterType="String" resultType="Integer">
+		select sdi.provider_type
+		from hs_emp_hire_sep ehs, hs_subcontract hs, sys_department_info sdi
+		where ehs.subcontract_id = hs.subcontract_id
+		  and hs.assignee_provider_id = sdi.department_id
+		  and ehs.emp_hire_sep_id = #{value}
+	</select>
+
+	<select id="getHireSepSmsInfoById" parameterType="String" resultType="com.ctg.hro.entity.emphiresep.emporder.HireSepSmsInfo">
+		select bc.cust_id custId,
+		bc.cust_name custName,
+		be.emp_id empId,
+		be.emp_name empName,
+		be.id_card_type idCardType,
+		(select bbd.base_data_name
+		from bd_base_data bbd
+		where bbd.base_data_code = be.id_card_type
+		and bbd.type = 45
+		and bbd.is_deleted = 0) idCardTypeName,
+		be.id_card_num idCardNum,
+		be.contact_tel1 contactTel1,
+		be.contact_tel2 contactTel2,
+		hs.assigner_provider_id assignerProviderId,
+		hs.assignee_provider_id assigneeProviderId,
+		hs.assigner_cs_id assignerCsId,
+		nvl2(t.provider_id, t.cs_id, hs.assignee_cs_id) assigneeCsId,
+		seih.emp_name assignerCs,
+		seih.contact_tel1 assignerCsTel,
+		nvl2(t.provider_id, t.emp_name, seis.emp_name) assigneeCs,
+		nvl2(t.provider_id, t.contact_tel1, seis.contact_tel1) assigneeCsTel
+		from hs_emp_hire_sep hehs,
+		bd_customer bc,
+		bd_employee be,
+		hs_subcontract hs,
+		sys_department_info sdi,
+		sys_employee_info seih,
+		sys_employee_info seis,
+		(select distinct pca.provider_id,
+		sui.emp_name,
+		sui.contact_tel1,
+		pca.cs_id
+		from pd_provider_cs_auth pca, sys_employee_info sui
+		where pca.is_deleted = 0
+		  <![CDATA[
+		  and pca.start_dt <= trunc(sysdate)
+		  ]]>
+		and (pca.end_dt is null or pca.end_dt >= trunc(sysdate))
+		and pca.cs_id = sui.emp_id) t
+		where hehs.cust_id = bc.cust_id
+		and hehs.emp_id = be.emp_id
+		and hehs.subcontract_id = hs.subcontract_id
+		and hs.assignee_provider_id = sdi.department_id
+		and hs.assigner_cs_id = seih.emp_id(+)
+		and hs.assignee_cs_id = seis.emp_id(+)
+		and hs.assignee_provider_id = t.provider_id(+)
+		and hehs.is_deleted = 0
+		and bc.is_deleted = 0
+		and be.is_deleted = 0
+		and hehs.emp_hire_sep_id = #{value}
+	</select>
+</mapper>
