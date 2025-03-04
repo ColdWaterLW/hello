@@ -1,8 +1,13 @@
 [pr_reviewer] # /review #
-extra_instructions = "请使用中文描述这些内容"
+extra_instructions = "Please describe these contents in Chinese."
 
 [pr_description] # /describe #
-extra_instructions = "请使用中文描述这些内容"
+publish_labels=false
+add_original_user_description=true
+generate_ai_title=false
+use_bullet_points=true
+extra_instructions = "Please describe these contents in Chinese."
+enable_pr_type=false
 
 [pr_code_suggestions] # /improve #
-extra_instructions = "Please use Chinese to answer the field content"
+extra_instructions = "Please describe these contents in Chinese."
