@@ -3,7 +3,16 @@ response_language="zh-CN"
 verbosity_level=2
 
 [pr_reviewer] # /review #
-extra_instructions = "Please describe all the response of the PR Reviewer Guide in Chinese."
+extra_instructions = """
+- Please describe all the response of the PR Reviewer Guide in Chinese.
+- Please describe all the response of the PR Reviewer Guide in Chinese.
+- Please describe all the response of the PR Reviewer Guide in Chinese.
+- Please do not use other languages in your responses.
+- The following code might cause a panic at runtime. Please help analyze the potential causes and provide improvement suggestions:
+  - Has every possible error been handled?
+  - Is there a chance of array out-of-bounds access or nil pointer dereference?
+  - Are there any unsafe type conversions being used?
+"""
 
 [pr_description] # /describe #
 publish_labels = false
