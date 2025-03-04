@@ -1,3 +1,6 @@
+[config]
+response_language="zh-CN"
+
 [pr_reviewer] # /review #
 require_score_review=false
 require_tests_review=true
@@ -7,7 +10,6 @@ require_security_review=true
 require_ticket_analysis_review=true
 # general options
 persistent_comment=true
-extra_instructions = "Please describe all the contents of the PR Reviewer Guide field in Chinese."
 final_update_message = true
 # review labels
 enable_review_labels_security=true
@@ -26,6 +28,3 @@ generate_ai_title = false
 use_bullet_points = true
 extra_instructions = "Please describe all the contents of the Description field in Chinese."
 enable_pr_type = false
-
-[pr_code_suggestions] # /improve #
-extra_instructions = "Please describe all the contents of the Suggestions field in Chinese."
