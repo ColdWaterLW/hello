@@ -1,0 +1,8 @@
+[pr_reviewer] # /review #
+extra_instructions = "Please use Chinese to answer the field content"
+
+[pr_description] # /describe #
+extra_instructions = "Please use Chinese to answer the field content"
+
+[pr_code_suggestions] # /improve #
+extra_instructions = "Please use Chinese to answer the field content"
