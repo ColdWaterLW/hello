@@ -1,13 +1,14 @@
 [pr_reviewer] # /review #
 extra_instructions = "Please describe all the contents of the Reviewer field in Chinese."
+require_tests_review = true
 
 [pr_description] # /describe #
-publish_labels=false
-add_original_user_description=true
-generate_ai_title=false
-use_bullet_points=true
+publish_labels = false
+add_original_user_description = true
+generate_ai_title = false
+use_bullet_points = true
 extra_instructions = "Please describe all the contents of the Description field in Chinese."
-enable_pr_type=false
+enable_pr_type = false
 
 [pr_code_suggestions] # /improve #
 extra_instructions = "Please describe all the contents of the Suggestions field in Chinese."
