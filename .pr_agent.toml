@@ -3,24 +3,7 @@ response_language="zh-CN"
 verbosity_level=2
 
 [pr_reviewer] # /review #
-require_score_review=false
-require_tests_review=true
-require_estimate_effort_to_review=true
-require_can_be_split_review=false
-require_security_review=true
-require_ticket_analysis_review=true
-# general options
-persistent_comment=true
-final_update_message = true
-# review labels
-enable_review_labels_security=true
-enable_review_labels_effort=true
-# specific configurations for incremental review (/review -i)
-require_all_thresholds_for_incremental_review=false
-minimal_commits_for_incremental_review=0
-minimal_minutes_for_incremental_review=0
-enable_intro_text=true
-enable_help_text=false # Determines whether to include help text in the PR review. Enabled by default.
+extra_instructions = "Please describe all the contents of the PR Reviewer Guide field in Chinese."
 
 [pr_description] # /describe #
 publish_labels = false
@@ -29,3 +12,6 @@ generate_ai_title = false
 use_bullet_points = true
 extra_instructions = "Please describe all the contents of the Description field in Chinese."
 enable_pr_type = false
+
+[pr_code_suggestions] # /improve #
+extra_instructions = "Please describe all the contents of the PR Code Suggestions field in Chinese."
