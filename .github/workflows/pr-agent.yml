@@ -30,4 +30,4 @@ jobs:
           OPENAI.MODEL: "gpt-4o"
           PR_CODE_SUGGESTIONS.EXTRA_INSTRUCTIONS: "Please use Chinese to answer the field content"
           PR_REVIEWER_GUIDE.EXTRA_INSTRUCTIONS: "Please use Chinese to answer the field content"
-          PR_DESCRIPTIONS.EXTRA_INSTRUCTIONS: "Please use Chinese to answer the field content"
+          PR_DESCRIPTION.EXTRA_INSTRUCTIONS: "Please use Chinese to answer the field content"
