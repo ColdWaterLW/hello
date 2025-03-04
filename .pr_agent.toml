@@ -6,8 +6,8 @@ publish_labels=false
 add_original_user_description=true
 generate_ai_title=false
 use_bullet_points=true
-extra_instructions = "Please describe these contents in Chinese."
+extra_instructions = "请使用中文描述pr_description的内容"
 enable_pr_type=false
 
 [pr_code_suggestions] # /improve #
-extra_instructions = "Please describe these contents in Chinese."
+extra_instructions = "请使用中文描述pr_code_suggestions的内容"
