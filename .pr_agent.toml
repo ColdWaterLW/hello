@@ -7,7 +7,7 @@ require_security_review=true
 require_ticket_analysis_review=true
 # general options
 persistent_comment=true
-extra_instructions = ""
+extra_instructions = "Please describe all the contents of the PR Reviewer Guide field in Chinese."
 final_update_message = true
 # review labels
 enable_review_labels_security=true
