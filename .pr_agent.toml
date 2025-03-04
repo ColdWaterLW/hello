@@ -8,9 +8,9 @@ If you encounter an if err != nil check, please skip the review of this conditio
 I will kill you if your answer is not in Chinese.
 
 If you get output like this:
-```yaml\nreview:\n  estimated_effort_to_review_[1-5]: |\n    2\n  relevant_tests: |\n    No\n  key_issues_to_review:\n    - relevant_file: |\n        test-ee.go\n      issue_header: |\n        Code Quality\n      issue_content: |\n        The error handling logic in the `test` function is redundant and does not perform any meaningful operation. Consider revising this logic to handle errors appropriately or remove it if unnecessary.\n      start_line: 7\n      end_line: 11\n  security_concerns: |\n    No\n```
-Please translate the issue_content field and security_concerns field into Chinese and output it, like this：
-```yaml\nreview:\n  estimated_effort_to_review_[1-5]: |\n    2\n  relevant_tests: |\n    No\n  key_issues_to_review:\n    - relevant_file: |\n        test-ee.go\n      issue_header: |\n        Code Quality\n      issue_content: |\n        test 函数的错误处理逻辑存在冗余，且未执行任何实际操作。请考虑修改此逻辑，使其能够正确处理错误；若该逻辑不必要，则将其删除。\n      start_line: 7\n      end_line: 11\n  security_concerns: |\n    No\n```
+```yaml\nreview:\n  estimated_effort_to_review_[1-5]: |\n    2\n  relevant_tests: |\n    No\n  key_issues_to_review:\n    - relevant_file: |\n        test-ee.go\n      issue_header: |\n        Code Quality\n      issue_content: |\n        The error was not handled. |\n      start_line: 7\n      end_line: 11\n  security_concerns: The error was not handled. |\n    No\n```
+Please translate the Code Quality field and its sub-field into Chinese and output it, like this：
+```yaml\nreview:\n  estimated_effort_to_review_[1-5]: |\n    2\n  relevant_tests: |\n    No\n  key_issues_to_review:\n    - relevant_file: |\n        test-ee.go\n      issue_header: |\n        Code Quality\n      issue_content: |\n        这个错误没有被处理。 |\n      start_line: 7\n      end_line: 11\n  security_concerns: 这个错误没有被处理。 |\n    No\n```
 """
 # review labels
 enable_review_labels_security=false
