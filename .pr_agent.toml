@@ -3,7 +3,7 @@ response_language="zh-CN"
 verbosity_level=2
 
 [pr_reviewer] # /review #
-extra_instructions = "Please describe all the contents of the PR Reviewer Guide field in Chinese."
+extra_instructions = "Please describe all the response of the PR Reviewer Guide in Chinese."
 
 [pr_description] # /describe #
 publish_labels = false
@@ -14,4 +14,4 @@ extra_instructions = "Please describe all the contents of the Description field 
 enable_pr_type = false
 
 [pr_code_suggestions] # /improve #
-extra_instructions = "Please describe all the contents of the PR Code Suggestions field in Chinese."
+extra_instructions = "Please describe all the contents of the Suggestions field in Chinese."
