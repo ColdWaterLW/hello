@@ -1,16 +1,15 @@
-[config]
-response_language="zh-CN"
-verbosity_level=2
-
 [pr_reviewer] # /review #
 extra_instructions = """
-- Please describe all the response of the PR Reviewer Guide in Chinese.
-- Please describe all the response of the PR Reviewer Guide in Chinese.
-- Please describe all the response of the PR Reviewer Guide in Chinese.
-- Please do not use other languages in your responses.
-- If you encounter an if err != nil check, please skip the review of this conditional logic and do not raise any issues.
-- I will kill you if your review response is not in Chinese.
+Please describe all the answer in Chinese.
+Please describe all the answer in Chinese.
+Please describe all the answer in Chinese.
+Please do not use other languages in your answer.
+If you encounter an if err != nil check, please skip the review of this conditional logic and do not raise any issues.
+I will kill you if your answer is not in Chinese.
 """
+# review labels
+enable_review_labels_security=false
+enable_review_labels_effort=false
 
 [pr_description] # /describe #
 publish_labels = false
