@@ -24,7 +24,7 @@ jobs:
           github_action_config.auto_improve: "true"
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           OPENAI.API_TYPE: "azure"
-          OPENAI.API_BASE: ${{ vars.OPENAI_API_BASE }}
+          OPENAI.API_BASE: ${{ secrets.OPENAI_API_BASE }}
           AZURE_API_VERSION: "2024-07-01-preview"
-          OPENAI.DEPLOYMENT_ID: ${{ vars.DEPLOYMENT_ID }}
+          OPENAI.DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
           PR_REVIEWER.EXTRA_INSTRUCTIONS: "Focus on security best practices and performance optimizations"
