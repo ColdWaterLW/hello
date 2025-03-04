@@ -1,5 +1,6 @@
 [config]
 response_language="zh-CN"
+verbosity_level=2
 
 [pr_reviewer] # /review #
 require_score_review=false
