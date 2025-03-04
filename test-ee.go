@@ -3,5 +3,10 @@ package hello
 import "fmt"
 
 func test()  {
-	fmt.Println("testfffaa")
+	fmt.Println("testffeeeeedddddfaa")
+	if err != nil {
+		err=nil
+		}else{
+		err=nil
+		}
 }
