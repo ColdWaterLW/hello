@@ -1,10 +1,10 @@
 [config]
 response_language="zh-CN"
+verbosity_level=2
 
 [pr_reviewer] # /review #
 extra_instructions = """
-Please describe the issue_content field in Chinese.
-Please translate the string 'PR Reviewer Guide' into Chinese. 
+Please describe the issue_content,issue_header field in Chinese.
 """
 # review labels
 enable_review_labels_security=false
