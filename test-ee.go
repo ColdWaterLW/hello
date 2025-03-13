@@ -4,4 +4,39 @@ import "fmt"
 
 func test()  {
 	fmt.Println("testfffaa")
+
+        _, _ = os.Open("nonexistent_file.txt")
+        fmt.Println("继续执行...")
+
+        db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
+        if err != nil {
+                log.Fatal(err)
+        }
+        defer db.Close()
+
+        username := "test' OR '1'='1"
+        query := fmt.Sprintf("SELECT * FROM users WHERE username = '%s'", username)
+        rows, err := db.Query(query)
+        if err != nil {
+                log.Fatal(err)
+        }
+        defer rows.Close()
+
+        for i := 0; i < 10000; i++ {
+                _, _ = os.Open("test.txt")
+        }
+
+
+        for i := 0; i < 10000; i++ {
+                _, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
+                if err != nil {
+                        log.Fatal(err)
+                }
+        }
+
+
+        for i := 0; i < 10000; i++ {
+                _, _ = net.Dial("tcp", "127.0.0.1:8080")
+        }
+
 }
