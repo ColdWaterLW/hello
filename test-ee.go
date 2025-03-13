@@ -21,12 +21,19 @@ func test()  {
         }
         defer rows.Close()
 
-        _, _ = os.Open("test.txt")
+        _, err = os.Open("test.txt")
+        if err != nil {
+                log.Fatal(err)
+        }
 
 
 	_, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
+        if err != nil {
+                log.Fatal(err)
+        }
 
-
-	_, _ = net.Dial("tcp", "127.0.0.1:8080")
-
+	_, err = net.Dial("tcp", "127.0.0.1:8080")
+        if err != nil {
+                log.Fatal(err)
+        }
 }
