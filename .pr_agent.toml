@@ -26,15 +26,24 @@ extra_instructions = "Please describe all the contents of the Description field 
 enable_pr_type = false
 
 [pr_code_suggestions] # /improve #
-focus_only_on_problems=false
 extra_instructions = """
 - Please describe all the contents of the Suggestions field in Chinese.
 - Please describe in Chinese why these code modification suggestions are being provided.
 - In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. Please do not suggest replacing db.Query() with db.Prepare() in code review suggestions.
 
 These issues require special attention, and should be highlighted in review suggestions along with explanations of their severity:
-- Issues that could cause panics
-- File descriptor leaks
+# Things about panic #
+- Nil pointer dereferences.
+- Array or slice out-of-bounds access.
+- Invalid type assertions.
+- Operations on nil or closed channels.
+- Division by zero.
+- Concurrent map access without proper synchronization.
+- Use of uninitialized variables.
+- Improper use of defer functions.
+- Any other conditions that could trigger a panic.
+
+- Failure to close an opened file leads to a file descriptor leak. This is a crucial issue that the AI should prioritize during code reviews to prevent resource exhaustion.
 - Network connection leaks
 - Database connection leaks
 - Memory leaks
