@@ -5,9 +5,6 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
-	var ss *string
-	fmt.Println(*ss)
-
         db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
                 log.Fatal(err)
