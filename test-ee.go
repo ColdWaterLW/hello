@@ -15,28 +15,18 @@ func test()  {
         defer db.Close()
 
         username := "test' OR '1'='1"
-        query := fmt.Sprintf("SELECT * FROM users WHERE username = '%s'", username)
-        rows, err := db.Query(query)
+	rows, err := db.Query("SELECT * FROM users WHERE username = ?", username)
         if err != nil {
                 log.Fatal(err)
         }
         defer rows.Close()
 
-        for i := 0; i < 10000; i++ {
-                _, _ = os.Open("test.txt")
-        }
+        _, _ = os.Open("test.txt")
 
 
-        for i := 0; i < 10000; i++ {
-                _, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
-                if err != nil {
-                        log.Fatal(err)
-                }
-        }
+	_, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
 
 
-        for i := 0; i < 10000; i++ {
-                _, _ = net.Dial("tcp", "127.0.0.1:8080")
-        }
+	_, _ = net.Dial("tcp", "127.0.0.1:8080")
 
 }
