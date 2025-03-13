@@ -2,6 +2,26 @@
 response_language="zh-CN"
 verbosity_level=2
 
+[pr_reviewer] # /review #
+# enable/disable features
+require_score_review=false
+require_tests_review=false
+require_estimate_effort_to_review=false
+require_can_be_split_review=false
+require_security_review=false
+require_ticket_analysis_review=false
+# general options
+persistent_comment=false
+extra_instructions = "Please do not output the contents of the pr_reviewer module."
+final_update_message = false
+# review labels
+enable_review_labels_security=false
+enable_review_labels_effort=false
+# specific configurations for incremental review (/review -i)
+require_all_thresholds_for_incremental_review=false
+enable_intro_text=false
+enable_help_text=false
+
 [pr_description] # /describe #
 publish_labels = false
 add_original_user_description = true
@@ -14,4 +34,12 @@ enable_pr_type = false
 extra_instructions = """
 - Please describe all the contents of the Suggestions field in Chinese.
 - Please translate the content of the 'why' field in the 'suggestion_summary' field into Chinese. 
+
+These issues require special attention, and should be highlighted in review suggestions along with explanations of their severity:
+- Issues that could cause panics
+- File descriptor leaks
+- Network connection leaks
+- Database connection leaks
+- Memory leaks
+- Other system resource leaks
 """
