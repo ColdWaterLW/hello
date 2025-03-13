@@ -5,6 +5,9 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
+	var ss *string
+	fmt.Println(*ss)
+
         _, _ = os.Open("nonexistent_file.txt")
         fmt.Println("继续执行...")
 
