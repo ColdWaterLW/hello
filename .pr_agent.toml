@@ -4,21 +4,17 @@ verbosity_level=2
 
 [pr_reviewer] # /review #
 # enable/disable features
-require_score_review=false
-require_tests_review=false
-require_estimate_effort_to_review=false
-require_can_be_split_review=false
-require_security_review=false
-require_ticket_analysis_review=false
 # general options
-persistent_comment=false
-extra_instructions = "Please do not output the contents of the pr_reviewer module."
-final_update_message = false
+persistent_comment=true
+extra_instructions = """
+- Please describe the issue_content,issue_header field in Chinese.
+- In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. Please do not suggest replacing db.Query() with db.Prepare() in code review suggestions.
+"""
+final_update_message = true
 # review labels
 enable_review_labels_security=false
 enable_review_labels_effort=false
 # specific configurations for incremental review (/review -i)
-require_all_thresholds_for_incremental_review=false
 enable_intro_text=false
 enable_help_text=false
 
@@ -33,7 +29,8 @@ enable_pr_type = false
 [pr_code_suggestions] # /improve #
 extra_instructions = """
 - Please describe all the contents of the Suggestions field in Chinese.
-- Please translate the content of the 'why' field in the 'suggestion_summary' field into Chinese. 
+- Please describe in Chinese why these code modification suggestions are being provided.
+- In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. Please do not suggest replacing db.Query() with db.Prepare() in code review suggestions.
 
 These issues require special attention, and should be highlighted in review suggestions along with explanations of their severity:
 - Issues that could cause panics
