@@ -5,7 +5,6 @@ verbosity_level=2
 [pr_reviewer] # /review #
 # enable/disable features
 # general options
-persistent_comment=false
 extra_instructions = """
 - Please describe the issue_content,issue_header field in Chinese.
 - In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. For example, db.Query(\"SELECT * FROM tb1 WHERE a = ? AND b = ?\", aa, bb) also uses parameter passing with ? placeholders. Please do not flag such cases as SQL injection risks.
@@ -27,7 +26,7 @@ extra_instructions = "Please describe all the contents of the Description field 
 enable_pr_type = false
 
 [pr_code_suggestions] # /improve #
-persistent_comment=false
+focus_only_on_problems=false
 extra_instructions = """
 - Please describe all the contents of the Suggestions field in Chinese.
 - Please describe in Chinese why these code modification suggestions are being provided.
