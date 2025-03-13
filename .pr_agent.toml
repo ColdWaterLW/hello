@@ -1,3 +1,6 @@
+[config]
+response_language="zh-CN"
+
 [pr_reviewer] # /review #
 extra_instructions = """
 Please describe the issue_content field in Chinese.
