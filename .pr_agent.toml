@@ -19,4 +19,7 @@ extra_instructions = "Please describe all the contents of the Description field 
 enable_pr_type = false
 
 [pr_code_suggestions] # /improve #
-extra_instructions = "Please describe all the contents of the Suggestions field in Chinese."
+extra_instructions = """
+- Please describe all the contents of the Suggestions field in Chinese.
+- Please describe all the contents of the code_suggestions field in Chinese. 
+"""
