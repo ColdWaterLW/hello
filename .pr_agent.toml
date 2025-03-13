@@ -1,10 +1,7 @@
 [pr_reviewer] # /review #
 extra_instructions = """
 Please describe the issue_content field in Chinese.
-Please describe the issue_content field in Chinese.
-Please describe the issue_content field Chinese.
-Please do not use other languages in your answer.
-If you encounter an if err != nil check, please skip the review of this conditional logic and do not raise any issues.
+Please translate the string 'PR Reviewer Guide' into Chinese. 
 """
 # review labels
 enable_review_labels_security=false
