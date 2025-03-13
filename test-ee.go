@@ -8,9 +8,6 @@ func test()  {
 	var ss *string
 	fmt.Println(*ss)
 
-        _, _ = os.Open("nonexistent_file.txt")
-        fmt.Println("继续执行...")
-
         db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
                 log.Fatal(err)
