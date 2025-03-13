@@ -14,7 +14,7 @@ func test()  {
         }
         defer db.Close()
 
-        username := "test' OR '1'='1"
+        username := "test'
 	rows, err := db.Query("SELECT * FROM users WHERE username = ?", username)
         if err != nil {
                 log.Fatal(err)
