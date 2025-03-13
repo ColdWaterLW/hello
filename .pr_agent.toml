@@ -2,14 +2,6 @@
 response_language="zh-CN"
 verbosity_level=2
 
-[pr_reviewer] # /review #
-extra_instructions = """
-Please describe the issue_content,issue_header field in Chinese.
-"""
-# review labels
-enable_review_labels_security=false
-enable_review_labels_effort=false
-
 [pr_description] # /describe #
 publish_labels = false
 add_original_user_description = true
