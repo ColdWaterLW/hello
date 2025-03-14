@@ -27,4 +27,4 @@ jobs:
           OPENAI.API_BASE: ${{ secrets.OPENAI_API_BASE }}
           AZURE_API_VERSION: "2024-07-01-preview"
           OPENAI.DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
-          OPENAI.MODEL: "gpt-4o"
+          OPENAI.MODEL: "o1-mini"
