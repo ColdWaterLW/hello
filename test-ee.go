@@ -5,7 +5,7 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
-        _, _ = os.Open("test2222.txt")
+        _, err = os.Open("test2222.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
