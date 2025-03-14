@@ -59,4 +59,6 @@ These issues require special attention, and should be highlighted in review sugg
 [github_app]
 # settings for "pull_request" event with "synchronize" action - used to detect and handle push triggers for new commits
 handle_push_trigger = true
-push_trigger_ignore_bot_commits = false
+
+[litellm]
+drop_params = true
