@@ -1,4 +1,5 @@
 [config]
+model="o1-mini"
 response_language="zh-CN"
 verbosity_level=2
 
