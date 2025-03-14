@@ -1,5 +1,6 @@
 [config]
 model="o1-mini"
+fallback_models=["gpt-4o"]
 response_language="zh-CN"
 verbosity_level=2
 
