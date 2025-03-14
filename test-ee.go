@@ -35,4 +35,7 @@ func test()  {
         if err != nil {
                 log.Fatal(err)
         }
+
+	var i *int
+	*i=0
 }
