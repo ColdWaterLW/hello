@@ -67,19 +67,7 @@ These issues require special attention, and should be highlighted in review sugg
 - Memory leaks
 - Other system resource leaks
 
-- During review, if a specific type of code issue is encountered, please do not overlook this issue in subsequent reviews and continue to provide suggestions for all code blocks exhibiting the problem. For example, in the following code, please provide null pointer modification suggestions for both the first and ninth lines:
-```Golang
-var ptr *int
-*ptr = 10
-
-_, err = net.Dial("tcp", "127.0.0.1:8080")
-if err != nil {
-        log.Fatal(err)
-}
-
-var i *int
-*i = 0
-```
+- Make certain that all the reviewer's questions have received corresponding suggestions.
 """
 
 [github_app]
