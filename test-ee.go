@@ -5,7 +5,11 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
-        _, _ = os.Open("test2222.txt")
+        _, err = os.Open("test2222.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+        defer db.Close()	
 
         db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
