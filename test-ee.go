@@ -5,6 +5,8 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
+        _, _ = os.Open("test2222.txt")
+
         db, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
                 log.Fatal(err)
