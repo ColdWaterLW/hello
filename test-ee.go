@@ -31,6 +31,9 @@ func test()  {
                 log.Fatal(err)
         }
 
+        var ptr *int
+        *ptr = 10
+
 	_, err = net.Dial("tcp", "127.0.0.1:8080")
         if err != nil {
                 log.Fatal(err)
