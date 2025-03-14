@@ -13,6 +13,9 @@ func test()  {
         }
         defer db.Close()
 
+	var b *string
+	fmt.Println(*b)
+	
         username := "test"
 	rows, err := db.Query("SELECT * FROM users WHERE username = ?", username)
         if err != nil {
@@ -25,20 +28,18 @@ func test()  {
                 log.Fatal(err)
         }
 
+	var a *uint
+	*a=0
 
 	_, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
                 log.Fatal(err)
         }
 
-        var ptr *int
-        *ptr = 10
 
 	_, err = net.Dial("tcp", "127.0.0.1:8080")
         if err != nil {
                 log.Fatal(err)
         }
 
-	var i *int
-	*i=0
 }
