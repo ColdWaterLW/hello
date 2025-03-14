@@ -11,19 +11,7 @@ extra_instructions = """
 - When a new commit is submitted, please re-review all code changes and update the response.
 
 - In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. For example, db.Query(\"SELECT * FROM tb1 WHERE a = ? AND b = ?\", aa, bb) also uses parameter passing with ? placeholders. Please do not flag such cases as SQL injection risks.
-- During review, if a specific type of code issue is encountered, please do not overlook this issue in subsequent reviews and continue to provide suggestions for all code blocks exhibiting the problem. For example, in the following code, please provide null pointer modification suggestions for both the first and ninth lines:
-```Golang
-var ptr *int
-*ptr = 10
-
-_, err = net.Dial("tcp", "127.0.0.1:8080")
-if err != nil {
-        log.Fatal(err)
-}
-
-var i *int
-*i = 0
-```
+- During review, if a specific type of code issue is encountered, please do not overlook this issue in subsequent reviews and continue to provide suggestions for all code blocks exhibiting the problem. 
 """
 final_update_message = true
 # review labels
