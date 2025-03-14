@@ -1,6 +1,6 @@
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, review_requested, synchronize]
   issue_comment:
 jobs:
   pr_agent_job:
@@ -17,7 +17,7 @@ jobs:
         uses: qodo-ai/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "review_requested"]'
+          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "review_requested", "synchronize"]'
           OPENAI_API_VERSION: "2024-07-01-preview"
           github_action_config.auto_review: "true"
           github_action_config.auto_describe: "true"
