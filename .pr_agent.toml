@@ -32,6 +32,7 @@ extra_instructions = """
 - Please describe all the contents of the Suggestions field in Chinese.
 - Please describe in Chinese why these code modification suggestions are being provided.
 - When a new commit is submitted, please re-review all code changes and update the persistent review.
+- When reviewing, if identical issues are found in multiple code blocks, please offer recommendations for each instance.
 
 - In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. Please do not suggest replacing db.Query() with db.Prepare() in code review suggestions.
 
