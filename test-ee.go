@@ -36,13 +36,13 @@ func test()  {
 	var a uint
 	a=0
 
-	_, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
+	_, err := sql.Open("mysql", dsn)
         if err != nil {
                 log.Fatal(err)
         }
 
 
-	_, err = net.Dial("tcp", "127.0.0.1:8080")
+	conn, err = net.Dial("tcp", "127.0.0.1:8080")
         if err != nil {
                 log.Fatal(err)
         }
