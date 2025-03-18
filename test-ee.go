@@ -16,6 +16,9 @@ func test()  {
                 log.Fatal(err)
         }
         defer db.Close()
+
+	var b *string
+	fmt.Println(*b)
 	
         username := "test"
 	rows, err := db.Query("SELECT * FROM users WHERE username = ?", username)
