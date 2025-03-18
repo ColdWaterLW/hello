@@ -8,7 +8,6 @@ verbosity_level=2
 # general options
 extra_instructions = """
 - Please describe the issue_content,issue_header field in Chinese.
-- When a new commit is submitted, please re-review all code changes and update the response.
 
 - In Golang code, using db.Query() and using stmt, err := db.Prepare() followed by stmt.Query() have the same effect. For example, db.Query(\"SELECT * FROM tb1 WHERE a = ? AND b = ?\", aa, bb) also uses parameter passing with ? placeholders. Please do not flag such cases as SQL injection risks.
 - During review, if a specific type of code issue is encountered, please do not overlook this issue in subsequent reviews and continue to provide suggestions for all code blocks exhibiting the problem. 
