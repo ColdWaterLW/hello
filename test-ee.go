@@ -16,9 +16,8 @@ func test()  {
         }
         defer db.Close()
 
-	var b *string
-	b = new(*string)
-	fmt.Println(*b)
+	var b string
+	fmt.Println(b)
 	
         username := "test"
 	rows, err := db.Query("SELECT * FROM users WHERE username = ?", username)
@@ -32,8 +31,8 @@ func test()  {
                 log.Fatal(err)
         }
 
-	var a *uint
-	*a=0
+	var a uint
+	a=0
 
 	_, err := sql.Open("mysql", "user:password@tcp(127.0.0.1:3306)/dbname")
         if err != nil {
@@ -45,5 +44,6 @@ func test()  {
         if err != nil {
                 log.Fatal(err)
         }
+	defer conn.Close()
 
 }
