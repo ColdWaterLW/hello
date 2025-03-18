@@ -17,6 +17,7 @@ func test()  {
         defer db.Close()
 
 	var b *string
+	b = new(*string)
 	fmt.Println(*b)
 	
         username := "test"
