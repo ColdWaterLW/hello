@@ -5,6 +5,9 @@ import "fmt"
 func test()  {
 	fmt.Println("testfffaa")
 
+	var a *string
+	fmt.Println(*a)
+	
         _, _ = os.Open("nonexistent_file.txt")
         fmt.Println("继续执行...")
 
@@ -20,6 +23,9 @@ func test()  {
                 log.Fatal(err)
         }
         defer rows.Close()
+
+	var b *int
+	*b=1
 
         _, _ = os.Open("test.txt")
 
