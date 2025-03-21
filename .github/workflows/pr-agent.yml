@@ -11,6 +11,10 @@ jobs:
       contents: write
     name: Run pr agent on every pull request, respond to user comments
     steps:
+      - name: Debug User Info
+        run: |
+          echo "Actor: ${{ github.actor }}"
+          echo "Sender Login: ${{ github.event.sender.login }}"
       - name: PR Agent action step
         id: pragent
         uses: qodo-ai/pr-agent@main
