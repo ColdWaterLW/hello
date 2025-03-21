@@ -3,7 +3,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
 jobs:
   pr_agent_job:
-    if: ${{ github.event.sender.type != 'Bot' }}
+    if: ${{ github.event.sender.type != 'Bot' || github.actor != 'ColdWaterLW' }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
